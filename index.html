@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>shell// — a command reference</title>
+<script>
+  (function(){
+    try{
+      var saved = localStorage.getItem('shellref-theme');
+      if(saved === 'light' || saved === 'dark'){
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches){
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    }catch(e){}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E13;
+    --panel:#131720;
+    --panel-hover:#171C27;
+    --border:#232936;
+    --border-soft:#1B212C;
+    --text:#E7E9EE;
+    --muted:#8890A0;
+    --muted-2:#5C6373;
+    --amber:#FFB020;
+    --cmd:#6C8EBF;
+    --ps:#5391FE;
+    --wsl:#C2679E;
+    --unix:#4FA187;
+    --setup:#D9A441;
+    --header-bg:rgba(11,14,19,0.88);
+    --example-bg:rgba(255,255,255,0.02);
+    --example-text:#B9C0CE;
+    --shadow:rgba(0,0,0,0.6);
+  }
+  html[data-theme="light"]{
+    --bg:#F3F5F8;
+    --panel:#FFFFFF;
+    --panel-hover:#EDF0F5;
+    --border:#DCE1E9;
+    --border-soft:#E7EAF0;
+    --text:#1A2029;
+    --muted:#5B6472;
+    --muted-2:#8891A0;
+    --header-bg:rgba(243,245,248,0.88);
+    --example-bg:rgba(20,30,45,0.045);
+    --example-text:#3C4452;
+    --shadow:rgba(30,40,60,0.14);
+  }
+  html{ transition:background-color .2s ease; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    transition:background-color .2s ease, color .2s ease;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(83,145,254,0.06), transparent),
+      radial-gradient(1000px 500px at 100% 0%, rgba(255,176,32,0.05), transparent),
+      var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background: rgba(255,176,32,0.25); }
+  a{color:inherit;}
+  code, .mono{ font-family:'JetBrains Mono', monospace; }
+  .display{ font-family:'Space Grotesk', sans-serif; }
+
+  /* ===== Header ===== */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:var(--header-bg);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .header-inner{
+    max-width:1280px; margin:0 auto; padding:14px 24px;
+    display:flex; align-items:center; gap:24px;
+  }
+  .logo{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:18px; letter-spacing:-0.02em;
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+  }
+  .logo .bracket{ color:var(--amber); }
+  .search-wrap{ position:relative; flex:1; max-width:560px; }
+  .search-wrap input{
+    width:100%; background:var(--panel); border:1px solid var(--border);
+    color:var(--text); padding:10px 14px 10px 38px; border-radius:8px;
+    font-family:'JetBrains Mono', monospace; font-size:13.5px;
+    outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  .search-wrap input:focus{
+    border-color:var(--amber);
+    box-shadow:0 0 0 3px rgba(255,176,32,0.12);
+  }
+  .search-wrap svg{
+    position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    width:15px; height:15px; color:var(--muted-2); pointer-events:none;
+  }
+  .result-count{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--muted-2);
+    white-space:nowrap;
+  }
+  #themeToggle{
+    flex-shrink:0; width:36px; height:36px; border-radius:8px;
+    background:var(--panel); border:1px solid var(--border); color:var(--muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:color .12s, border-color .12s, background .12s;
+  }
+  #themeToggle:hover{ color:var(--amber); border-color:var(--muted-2); }
+  #themeToggle svg{ width:16px; height:16px; }
+  #themeToggle .icon-moon{ display:none; }
+  html[data-theme="light"] #themeToggle .icon-sun{ display:none; }
+  html[data-theme="light"] #themeToggle .icon-moon{ display:block; }
+
+  /* ===== Hero ===== */
+  .hero{
+    max-width:1280px; margin:0 auto; padding:56px 24px 40px;
+    display:grid; grid-template-columns: 1.1fr 0.9fr; gap:48px; align-items:center;
+  }
+  .hero h1{
+    font-family:'Space Grotesk', sans-serif; font-weight:600;
+    font-size:clamp(28px,4vw,44px); line-height:1.15; letter-spacing:-0.02em;
+    margin:0 0 14px;
+  }
+  .hero h1 .accent{ color:var(--amber); }
+  .hero p{ color:var(--muted); font-size:15px; line-height:1.6; max-width:46ch; margin:0 0 20px;}
+  .hero .stats{ display:flex; gap:22px; flex-wrap:wrap; }
+  .hero .stats div{ font-family:'JetBrains Mono', monospace; }
+  .hero .stats .n{ font-size:20px; font-weight:600; color:var(--text); }
+  .hero .stats .l{ font-size:11px; color:var(--muted-2); text-transform:uppercase; letter-spacing:.06em; }
+
+  .terminal{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    overflow:hidden; box-shadow:0 20px 60px -20px var(--shadow);
+  }
+  .terminal-bar{
+    display:flex; align-items:center; gap:6px; padding:10px 12px;
+    border-bottom:1px solid var(--border-soft); background:rgba(255,255,255,0.015);
+  }
+  .terminal-bar span{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .terminal-bar span:nth-child(1){ background:#ff5f57;}
+  .terminal-bar span:nth-child(2){ background:#febc2e;}
+  .terminal-bar span:nth-child(3){ background:#28c840;}
+  .terminal-body{
+    padding:20px 18px; min-height:150px; font-family:'JetBrains Mono', monospace; font-size:13.5px;
+    line-height:1.9;
+  }
+  .prompt-line{ display:flex; gap:8px; }
+  .prompt-line .p{ white-space:nowrap; }
+  .prompt-line .c{ color:var(--text); }
+  .cursor{ display:inline-block; width:7px; height:15px; background:var(--amber); margin-left:2px; vertical-align:middle; animation:blink 1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ===== Layout ===== */
+  .layout{ max-width:1280px; margin:0 auto; padding:8px 24px 80px; display:flex; align-items:flex-start; gap:36px; }
+  @media (max-width: 880px){ .layout{ flex-direction:column; } nav.sidebar{ width:100% !important; position:static; } .hero{ grid-template-columns:1fr; } }
+
+  nav.sidebar{
+    position:sticky; top:78px; align-self:start; flex-shrink:0;
+    display:flex; flex-direction:column; gap:4px;
+    width:220px; overflow:hidden; transition:width .22s ease;
+  }
+  nav.sidebar.collapsed{ width:52px; }
+  .nav-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted-2);
+    margin:6px 0 6px 2px; padding:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    cursor:pointer; user-select:none; background:transparent; border:none; width:100%;
+    font-family:'IBM Plex Sans', sans-serif; border-radius:6px; transition:color .12s, background .12s;
+  }
+  .nav-label:hover{ color:var(--muted); background:var(--panel-hover); }
+  .nav-label .label-text{ white-space:nowrap; overflow:hidden; }
+  .nav-label svg{ width:12px; height:12px; transition:transform .22s ease; flex-shrink:0; }
+  nav.sidebar.collapsed .nav-label{ justify-content:center; }
+  nav.sidebar.collapsed .nav-label svg{ transform:rotate(180deg); }
+  .nav-list{ display:flex; flex-direction:column; gap:4px; }
+  .nav-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 10px; border-radius:7px; border:1px solid transparent;
+    background:transparent; color:var(--muted); cursor:pointer; text-align:left;
+    font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; font-weight:500;
+    transition:background .12s, color .12s;
+  }
+  .nav-btn:hover{ background:var(--panel-hover); color:var(--text); }
+  .nav-btn.active{ background:var(--panel); color:var(--text); border-color:var(--border); }
+  .nav-btn .nav-btn-main{ display:flex; align-items:center; gap:8px; overflow:hidden; min-width:0; }
+  .nav-btn .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .nav-btn .label-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nav-btn .count{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted-2); flex-shrink:0; }
+  .nav-btn.active .count{ color:var(--muted); }
+  nav.sidebar.collapsed .nav-btn{ justify-content:center; padding:9px; }
+  nav.sidebar.collapsed .nav-btn .label-text,
+  nav.sidebar.collapsed .nav-btn .count{ display:none; }
+
+  /* ===== Sections / Cards ===== */
+  .section{ margin-bottom:44px; scroll-margin-top:80px; }
+  .section-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:4px; }
+  .section-head h2{ font-family:'Space Grotesk', sans-serif; font-size:22px; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .section-head .tag{
+    font-family:'JetBrains Mono', monospace; font-size:11px; padding:2px 8px; border-radius:20px;
+    border:1px solid currentColor;
+  }
+  .section-sub{ color:var(--muted); font-size:13.5px; margin:0 0 20px; max-width:70ch; }
+
+  .tier-label{
+    font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted-2); margin:22px 0 10px; display:flex; align-items:center; gap:8px;
+  }
+  .tier-label::after{ content:''; flex:1; height:1px; background:var(--border-soft); }
+
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:9px;
+    padding:14px 14px 12px; border-left:3px solid var(--card-accent, var(--border));
+    transition:transform .12s, border-color .12s;
+  }
+  .card:hover{ border-color:var(--muted-2); }
+  .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px;}
+  .card .cmd{ font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:600; color:var(--text); word-break:break-word; }
+  .copy-btn{
+    flex-shrink:0; background:transparent; border:1px solid var(--border); color:var(--muted);
+    border-radius:6px; padding:4px 7px; cursor:pointer; font-size:10.5px; font-family:'JetBrains Mono', monospace;
+    transition:all .12s;
+  }
+  .copy-btn:hover{ color:var(--text); border-color:var(--muted-2); }
+  .copy-btn.copied{ color:var(--unix); border-color:var(--unix); }
+  .card .desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; }
+  .card .example{
+    background:var(--example-bg); border:1px solid var(--border-soft); border-radius:6px;
+    padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--example-text);
+    white-space:pre-wrap; word-break:break-word; line-height:1.5;
+  }
+  .card .example .cm{ color:var(--muted-2); }
+
+  .empty{ text-align:center; padding:60px 20px; color:var(--muted-2); }
+  .empty .display{ font-size:18px; color:var(--muted); margin-bottom:6px; }
+
+  #toTop{
+    position:fixed; right:24px; bottom:24px; z-index:60;
+    width:42px; height:42px; border-radius:50%;
+    background:var(--panel); border:1px solid var(--border); color:var(--text);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    opacity:0; pointer-events:none; transform:translateY(8px);
+    transition:opacity .18s ease, transform .18s ease, border-color .12s, background .12s;
+    box-shadow:0 10px 30px -8px rgba(0,0,0,0.55);
+  }
+  #toTop.visible{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  #toTop:hover{ border-color:var(--amber); color:var(--amber); }
+  #toTop svg{ width:17px; height:17px; }
+  @media (prefers-reduced-motion: reduce){ #toTop{ transition:opacity .01s; } }
+
+  footer{ max-width:1280px; margin:0 auto; padding:20px 24px 60px; color:var(--muted-2); font-size:12px; border-top:1px solid var(--border-soft); }
+
+  @media (prefers-reduced-motion: reduce){ .cursor{ animation:none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo"><span class="bracket">&gt;</span>shell<span class="bracket">//</span></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Search commands, flags, descriptions… (e.g. grep, taskkill, wsl --export)" autocomplete="off">
+    </div>
+    <div class="result-count" id="resultCount"></div>
+    <button id="themeToggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <h1>Four shells.<br>One <span class="accent">reference</span> that doesn't make you tab-switch.</h1>
+    <p>CMD, PowerShell, WSL, and the Unix tools that live inside it — the commands worth remembering, plus the advanced ones worth looking up. Search once, find it in whichever shell you're actually in.</p>
+    <div class="stats">
+      <div><div class="n" id="statCmd">0</div><div class="l">cmd.exe</div></div>
+      <div><div class="n" id="statPs">0</div><div class="l">powershell</div></div>
+      <div><div class="n" id="statWsl">0</div><div class="l">wsl</div></div>
+      <div><div class="n" id="statUnix">0</div><div class="l">grep &amp; co.</div></div>
+      <div><div class="n" id="statSetup">0</div><div class="l">installs</div></div>
+    </div>
+  </div>
+  <div class="terminal">
+    <div class="terminal-bar"><span></span><span></span><span></span></div>
+    <div class="terminal-body" id="typer"></div>
+  </div>
+</section>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <button class="nav-label" id="navToggle" type="button" aria-expanded="true" title="Collapse sidebar">
+      <span class="label-text">Jump to</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="nav-list" id="navList">
+    <button class="nav-btn active" data-target="all" title="All commands"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">All commands</span></span><span class="count" id="cAll">0</span></button>
+    <button class="nav-btn" data-target="cmd" title="Command Prompt"><span class="nav-btn-main"><span class="dot" style="background:var(--cmd)"></span><span class="label-text">Command Prompt</span></span><span class="count" id="cCmd">0</span></button>
+    <button class="nav-btn" data-target="powershell" title="PowerShell"><span class="nav-btn-main"><span class="dot" style="background:var(--ps)"></span><span class="label-text">PowerShell</span></span><span class="count" id="cPs">0</span></button>
+    <button class="nav-btn" data-target="wsl" title="WSL"><span class="nav-btn-main"><span class="dot" style="background:var(--wsl)"></span><span class="label-text">WSL</span></span><span class="count" id="cWsl">0</span></button>
+    <button class="nav-btn" data-target="unix" title="grep, sed, awk & friends"><span class="nav-btn-main"><span class="dot" style="background:var(--unix)"></span><span class="label-text">grep, sed, awk &amp; friends</span></span><span class="count" id="cUnix">0</span></button>
+    <button class="nav-btn" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
+    </div>
+  </nav>
+
+  <main id="main"></main>
+</div>
+
+<footer>Built as a personal reference — commands run on your machine only, nothing here calls out anywhere. Ctrl+F still works too.</footer>
+
+<button id="toTop" type="button" aria-label="Jump to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+</button>
+
+<script>
+const DATA = [
+// ===================== CMD =====================
+{s:'cmd', t:'Basic', cmd:'dir /a /o:d', desc:'List files (incl. hidden), sorted by date.', ex:'dir /a /o:d'},
+{s:'cmd', t:'Basic', cmd:'cd, cd..', desc:'Show/change directory; cd.. moves up one level.', ex:'cd C:\\Projects\ncd ..'},
+{s:'cmd', t:'Basic', cmd:'copy / move / del', desc:'Copy, move/rename, or delete files.', ex:'copy a.txt b.txt\nmove b.txt D:\\Backup\\\ndel b.txt'},
+{s:'cmd', t:'Basic', cmd:'mkdir / rmdir', desc:'Create or remove a directory. Add /s to remove non-empty folders.', ex:'mkdir logs\nrmdir /s /q logs'},
+{s:'cmd', t:'Basic', cmd:'type', desc:'Print a file’s contents to the console (like cat).', ex:'type notes.txt'},
+{s:'cmd', t:'Basic', cmd:'cls', desc:'Clear the console screen.', ex:'cls'},
+{s:'cmd', t:'Basic', cmd:'echo %VAR%', desc:'Print text or an environment variable’s value.', ex:'echo %PATH%'},
+
+{s:'cmd', t:'Useful', cmd:'ipconfig /all', desc:'Full network adapter details — IP, DNS, MAC, gateway.', ex:'ipconfig /all'},
+{s:'cmd', t:'Useful', cmd:'ipconfig /flushdns', desc:'Clear the local DNS resolver cache.', ex:'ipconfig /flushdns'},
+{s:'cmd', t:'Useful', cmd:'ping / tracert', desc:'Test reachability, or trace the route to a host.', ex:'ping google.com -t\ntracert google.com'},
+{s:'cmd', t:'Useful', cmd:'nslookup', desc:'Query DNS records for a domain.', ex:'nslookup ldemotors.com'},
+{s:'cmd', t:'Useful', cmd:'netstat -ano', desc:'List active connections/ports with owning process IDs.', ex:'netstat -ano | findstr :443'},
+{s:'cmd', t:'Useful', cmd:'tasklist / taskkill', desc:'List running processes; force-kill by PID or image name.', ex:'tasklist | findstr chrome\ntaskkill /PID 4821 /F\ntaskkill /IM chrome.exe /F'},
+{s:'cmd', t:'Useful', cmd:'systeminfo', desc:'Full OS, hardware, and patch-level summary.', ex:'systeminfo | findstr /C:"OS Version"'},
+{s:'cmd', t:'Useful', cmd:'findstr', desc:'CMD’s built-in grep — search text in files, supports regex with /R.', ex:'findstr /S /I "TODO" *.js\nfindstr /R "^Error" log.txt'},
+{s:'cmd', t:'Useful', cmd:'xcopy / robocopy', desc:'Copy folder trees. robocopy is the modern, more reliable choice (mirroring, retries, logs).', ex:'xcopy C:\\Src D:\\Dst /E /H /C /I\nrobocopy C:\\Src D:\\Dst /MIR /LOG:copy.log'},
+{s:'cmd', t:'Useful', cmd:'sfc /scannow', desc:'Scan and repair corrupted Windows system files.', ex:'sfc /scannow'},
+{s:'cmd', t:'Useful', cmd:'chkdsk C: /f /r', desc:'Check a drive for errors and repair/recover bad sectors (needs reboot for C:).', ex:'chkdsk C: /f /r'},
+{s:'cmd', t:'Useful', cmd:'setx', desc:'Permanently set an environment variable (persists across sessions, unlike set).', ex:'setx NODE_ENV "production"'},
+{s:'cmd', t:'Useful', cmd:'shutdown /r /t 0', desc:'Restart (or /s to shut down) immediately, or after /t seconds.', ex:'shutdown /r /t 60\nshutdown /a  (cancel it)'},
+
+{s:'cmd', t:'Advanced', cmd:'wmic', desc:'Query system info via WMI — processes, installed software, disk, users.', ex:'wmic process list brief\nwmic product get name,version\nwmic diskdrive get model,size'},
+{s:'cmd', t:'Advanced', cmd:'netsh wlan show profile … key=clear', desc:'Reveal a saved Wi-Fi password from a known profile name.', ex:'netsh wlan show profiles\nnetsh wlan show profile name="MyWiFi" key=clear'},
+{s:'cmd', t:'Advanced', cmd:'reg query / add / delete', desc:'Read or edit the Windows Registry from the command line.', ex:'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"'},
+{s:'cmd', t:'Advanced', cmd:'diskpart', desc:'Interactive disk/partition management console (list disk, create partition, format).', ex:'diskpart\n> list disk\n> select disk 1\n> clean'},
+{s:'cmd', t:'Advanced', cmd:'gpupdate /force', desc:'Immediately reapply Group Policy without waiting for the refresh cycle.', ex:'gpupdate /force'},
+{s:'cmd', t:'Advanced', cmd:'for /f loops', desc:'Batch scripting loop — iterate over command output, file lines, or lists.', ex:'for /f "tokens=2" %i in (\'tasklist ^| findstr node\') do echo %i'},
+{s:'cmd', t:'Advanced', cmd:'powercfg /batteryreport', desc:'Generate an HTML battery health/usage report (laptops).', ex:'powercfg /batteryreport /output "C:\\battery.html"'},
+{s:'cmd', t:'Advanced', cmd:'icacls / takeown', desc:'Inspect or repair NTFS permissions; take ownership of a locked file/folder.', ex:'icacls "C:\\locked" /grant Jaswant:F /T\ntakeown /f "C:\\locked" /r'},
+{s:'cmd', t:'Advanced', cmd:'fsutil', desc:'Low-level filesystem utility — check disk stats, create fixed-size dummy files, query NTFS features.', ex:'fsutil fsinfo drives\nfsutil file createnew test.txt 1048576'},
+{s:'cmd', t:'Advanced', cmd:'certutil -hashfile', desc:'Compute a file’s hash (SHA256/MD5) without installing anything extra.', ex:'certutil -hashfile installer.exe SHA256'},
+{s:'cmd', t:'Advanced', cmd:'curl / tar', desc:'Modern Windows 10/11 ships real curl and tar in cmd.exe — no extra install needed.', ex:'curl -O https://example.com/file.zip\ntar -xf file.zip'},
+
+// ===================== POWERSHELL =====================
+{s:'powershell', t:'Basic', cmd:'Get-Help -Full', desc:'Full documentation for any cmdlet, with examples.', ex:'Get-Help Get-Process -Full\nGet-Help Get-Process -Examples'},
+{s:'powershell', t:'Basic', cmd:'Get-Command', desc:'Discover cmdlets — filter by verb, noun, or module.', ex:'Get-Command -Verb Get -Noun *process*'},
+{s:'powershell', t:'Basic', cmd:'Get-Process / Get-Service', desc:'List running processes or Windows services.', ex:'Get-Process | Sort CPU -Descending | select -First 5\nGet-Service | Where Status -eq Running'},
+{s:'powershell', t:'Basic', cmd:'Get-ChildItem', desc:'List directory contents (alias: ls, dir, gci). -Recurse, -Filter, -Hidden.', ex:'Get-ChildItem -Path C:\\Logs -Filter *.log -Recurse'},
+{s:'powershell', t:'Basic', cmd:'Get-Content', desc:'Read a file’s contents. -Tail streams the end (like tail -f).', ex:'Get-Content app.log -Tail 20 -Wait'},
+{s:'powershell', t:'Basic', cmd:'Get-Alias', desc:'See what a shorthand alias actually maps to.', ex:'Get-Alias ls\nGet-Alias | Where {$_.Name -eq "gci"}'},
+
+{s:'powershell', t:'Useful', cmd:'Where-Object / Select-Object', desc:'Filter objects by property, then pick which properties to keep.', ex:'Get-Process | Where-Object {$_.CPU -gt 50} | Select Name, CPU, Id'},
+{s:'powershell', t:'Useful', cmd:'Sort-Object / Group-Object', desc:'Sort a collection, or bucket it into groups by a property.', ex:'Get-Process | Sort WS -Descending\nGet-ChildItem | Group-Object Extension'},
+{s:'powershell', t:'Useful', cmd:'ForEach-Object', desc:'Run a block of code for every object piped in (alias: %).', ex:'1..5 | ForEach-Object { "Item $_" }'},
+{s:'powershell', t:'Useful', cmd:'Get-Member', desc:'List every property and method an object exposes — how you discover what’s pipeable.', ex:'Get-Process | Get-Member'},
+{s:'powershell', t:'Useful', cmd:'Test-Path / Test-NetConnection', desc:'Check if a file/path exists, or if a host+port is reachable.', ex:'Test-Path C:\\Backup\nTest-NetConnection google.com -Port 443'},
+{s:'powershell', t:'Useful', cmd:'Start-Process / Stop-Process', desc:'Launch or forcibly end a process, optionally elevated.', ex:'Start-Process notepad -Verb RunAs\nStop-Process -Name chrome -Force'},
+{s:'powershell', t:'Useful', cmd:'Copy-Item / Remove-Item -Recurse', desc:'Copy or delete files and folders, recursively with -Recurse.', ex:'Copy-Item .\\src -Destination .\\backup -Recurse\nRemove-Item .\\temp -Recurse -Force'},
+{s:'powershell', t:'Useful', cmd:'Invoke-WebRequest / Invoke-RestMethod', desc:'Fetch a URL or call a REST API directly from the shell.', ex:'Invoke-RestMethod -Uri "https://api.example.com/data" -Method Get'},
+{s:'powershell', t:'Useful', cmd:'ConvertTo-Json / Export-Csv', desc:'Turn any object collection into JSON or a CSV file.', ex:'Get-Process | Select Name,Id | ConvertTo-Json\nGet-Process | Export-Csv procs.csv -NoTypeInformation'},
+{s:'powershell', t:'Useful', cmd:'Get-NetIPConfiguration', desc:'Modern replacement for ipconfig — structured, filterable network info.', ex:'Get-NetIPConfiguration | Format-List'},
+
+{s:'powershell', t:'Advanced', cmd:'$PROFILE', desc:'Path to your personal startup script — put aliases/functions here so they load every session.', ex:'notepad $PROFILE\nif (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }'},
+{s:'powershell', t:'Advanced', cmd:'Set-ExecutionPolicy', desc:'Control whether local/remote .ps1 scripts are allowed to run.', ex:'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser'},
+{s:'powershell', t:'Advanced', cmd:'Invoke-Command / Enter-PSSession', desc:'Run commands on a remote machine, or open an interactive remote session (PS Remoting).', ex:'Invoke-Command -ComputerName Srv01 -ScriptBlock { Get-Service }\nEnter-PSSession -ComputerName Srv01'},
+{s:'powershell', t:'Advanced', cmd:'Get-CimInstance', desc:'Modern replacement for Get-WmiObject — query hardware/OS/BIOS data.', ex:'Get-CimInstance Win32_OperatingSystem | Select Caption, Version\nGet-CimInstance Win32_LogicalDisk'},
+{s:'powershell', t:'Advanced', cmd:'Start-Job / Get-Job / Receive-Job', desc:'Run a script block as a background job and collect its output later.', ex:'$j = Start-Job { Get-Process }\nReceive-Job $j -Keep'},
+{s:'powershell', t:'Advanced', cmd:'Install-Module / Import-Module', desc:'Install a PowerShell Gallery module and load it into the session.', ex:'Install-Module -Name Posh-Git -Scope CurrentUser\nImport-Module Posh-Git'},
+{s:'powershell', t:'Advanced', cmd:'-match / -replace (regex)', desc:'Regex matching and substitution operators built into the language.', ex:'"jaswant@lde.com" -match "^\\w+"\n"hello world" -replace "world","there"'},
+{s:'powershell', t:'Advanced', cmd:'try / catch / finally', desc:'Structured error handling around risky commands.', ex:'try {\n  Get-Content missing.txt -ErrorAction Stop\n} catch {\n  Write-Host "Failed: $_"\n}'},
+{s:'powershell', t:'Advanced', cmd:'function with params', desc:'Define a reusable script function with typed, named parameters.', ex:'function Get-Big($Path, [int]$MinMB = 100) {\n  Get-ChildItem $Path -Recurse |\n    Where Length -gt ($MinMB*1MB)\n}'},
+{s:'powershell', t:'Advanced', cmd:'Compress-Archive / Expand-Archive', desc:'Zip or unzip folders natively, no external tool needed.', ex:'Compress-Archive -Path .\\logs -DestinationPath logs.zip\nExpand-Archive logs.zip -DestinationPath .\\logs'},
+{s:'powershell', t:'Advanced', cmd:'Register-ScheduledTask', desc:'Create a Windows scheduled task entirely from PowerShell.', ex:'$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File C:\\job.ps1"\n$trigger = New-ScheduledTaskTrigger -Daily -At 9am\nRegister-ScheduledTask -Action $action -Trigger $trigger -TaskName "DailyJob"'},
+
+// ===================== WSL =====================
+{s:'wsl', t:'Basic', cmd:'wsl', desc:'Launch your default WSL distro’s shell.', ex:'wsl'},
+{s:'wsl', t:'Basic', cmd:'wsl --list --verbose', desc:'Show installed distros, their state, and WSL version (1 or 2). Alias: wsl -l -v', ex:'wsl -l -v'},
+{s:'wsl', t:'Basic', cmd:'wsl --install -d <Distro>', desc:'Install WSL (first run) or add a specific distro, e.g. Ubuntu.', ex:'wsl --install\nwsl --install -d Ubuntu-22.04'},
+{s:'wsl', t:'Basic', cmd:'wsl -d <Distro>', desc:'Open a shell in a specific distro (if you have more than one).', ex:'wsl -d Ubuntu-22.04'},
+{s:'wsl', t:'Basic', cmd:'wsl --set-default <Distro>', desc:'Change which distro launches when you just type wsl.', ex:'wsl --set-default Ubuntu-22.04'},
+{s:'wsl', t:'Basic', cmd:'wsl --shutdown', desc:'Force-stop the entire WSL VM (all distros) — fixes most “WSL acting weird” issues.', ex:'wsl --shutdown'},
+{s:'wsl', t:'Basic', cmd:'wsl --terminate <Distro>', desc:'Stop a single distro without shutting down the whole WSL VM.', ex:'wsl --terminate Ubuntu-22.04'},
+
+{s:'wsl', t:'Advanced', cmd:'wsl --export / --import', desc:'Back up a distro to a .tar file, or restore/clone it elsewhere.', ex:'wsl --export Ubuntu-22.04 D:\\backup\\ubuntu.tar\nwsl --import UbuntuClone D:\\wsl\\clone D:\\backup\\ubuntu.tar'},
+{s:'wsl', t:'Advanced', cmd:'wsl --set-version <Distro> 2', desc:'Convert a distro between WSL 1 and WSL 2 architectures.', ex:'wsl --set-version Ubuntu-22.04 2'},
+{s:'wsl', t:'Advanced', cmd:'.wslconfig (global)', desc:'Global WSL2 VM limits — memory, CPU, swap. Lives at %UserProfile%\\.wslconfig on Windows.', ex:'[wsl2]\nmemory=6GB\nprocessors=4\nswap=2GB'},
+{s:'wsl', t:'Advanced', cmd:'wsl.conf (per-distro)', desc:'Per-distro config inside Linux at /etc/wsl.conf — auto-mount options, default user, systemd.', ex:'[boot]\nsystemd=true\n\n[user]\ndefault=jaswant'},
+{s:'wsl', t:'Advanced', cmd:'Access Windows files from Linux', desc:'Your Windows drives are mounted under /mnt inside WSL.', ex:'cd /mnt/c/Users/Jaswant/Documents'},
+{s:'wsl', t:'Advanced', cmd:'Access Linux files from Windows', desc:'Browse your distro’s filesystem from Windows Explorer or any Windows app.', ex:'\\\\wsl$\\Ubuntu-22.04\\home\\jaswant'},
+{s:'wsl', t:'Advanced', cmd:'wsl --update', desc:'Update the WSL kernel/engine itself, independent of Windows Update.', ex:'wsl --update'},
+{s:'wsl', t:'Advanced', cmd:'wsl --list --online', desc:'See every distro available to install (Ubuntu, Debian, Kali, etc).', ex:'wsl --list --online'},
+
+// ===================== UNIX / GREP / SED / AWK =====================
+{s:'unix', t:'grep', cmd:'grep -i "pattern" file', desc:'Case-insensitive search for a string inside a file.', ex:'grep -i "error" server.log'},
+{s:'unix', t:'grep', cmd:'grep -r "pattern" .', desc:'Recursively search every file under the current directory.', ex:'grep -r "TODO" ./src'},
+{s:'unix', t:'grep', cmd:'grep -n / -v / -c', desc:'-n shows line numbers, -v inverts the match, -c just counts matches.', ex:'grep -n "warn" app.log\ngrep -v "DEBUG" app.log\ngrep -c "200" access.log'},
+{s:'unix', t:'grep', cmd:'grep -E "pat1|pat2"', desc:'Extended regex — alternation, groups, quantifiers without escaping.', ex:'grep -E "error|fail|timeout" app.log'},
+{s:'unix', t:'grep', cmd:'grep -A3 -B1 -w "word"', desc:'-w matches whole words only; -A/-B/-C print lines of context after/before/around a hit.', ex:'grep -A3 -B1 -w "Exception" app.log'},
+{s:'unix', t:'grep', cmd:'ps aux | grep node', desc:'Classic combo — filter a command’s output through grep.', ex:'ps aux | grep node | grep -v grep'},
+
+{s:'unix', t:'sed', cmd:'sed \'s/old/new/\' file', desc:'Replace the first match per line; add g at the end to replace all matches on the line.', ex:'sed \'s/foo/bar/g\' config.txt'},
+{s:'unix', t:'sed', cmd:'sed -i \'s/old/new/g\' file', desc:'Edit the file in place instead of just printing the result.', ex:'sed -i \'s/localhost/127.0.0.1/g\' .env'},
+{s:'unix', t:'sed', cmd:'sed -n \'2,4p\' file', desc:'Print only a specific line or range of lines (like head/tail combined).', ex:'sed -n \'2,4p\' file.txt'},
+{s:'unix', t:'sed', cmd:'sed \'/pattern/d\' file', desc:'Delete every line matching a pattern.', ex:'sed \'/^#/d\' config.txt   # strip comment lines'},
+
+{s:'unix', t:'awk', cmd:'awk \'{print $1}\' file', desc:'Print a column — $1 is the first whitespace-separated field, $0 is the whole line.', ex:'awk \'{print $1, $3}\' access.log'},
+{s:'unix', t:'awk', cmd:'awk -F"," \'{print $2}\' file', desc:'Use -F to set a custom field separator, e.g. for CSVs.', ex:'awk -F"," \'{print $2}\' contacts.csv'},
+{s:'unix', t:'awk', cmd:'awk \'/pattern/ {print}\'', desc:'Only act on lines matching a pattern — awk’s own built-in grep.', ex:'awk \'/ERROR/ {print $0}\' app.log'},
+{s:'unix', t:'awk', cmd:'awk \'{sum+=$2} END{print sum}\'', desc:'Aggregate a column across all lines — sums, counts, averages.', ex:'awk -F"," \'{sum+=$3} END{print "Total:", sum}\' sales.csv'},
+
+{s:'unix', t:'find & files', cmd:'find . -name "*.log"', desc:'Find files by name pattern, recursively from the current directory.', ex:'find . -name "*.log"'},
+{s:'unix', t:'find & files', cmd:'find . -mtime -7 / -size +100M', desc:'Filter by modified time (days) or size — great for cleanup jobs.', ex:'find . -type f -mtime -7\nfind . -type f -size +100M'},
+{s:'unix', t:'find & files', cmd:'find . -name "*.tmp" -exec rm {} \\;', desc:'Run a command on every match found. {} is replaced with each filename.', ex:'find . -name "*.tmp" -exec rm {} \\;'},
+{s:'unix', t:'find & files', cmd:'... | xargs', desc:'Feed piped-in lines as arguments to another command, in batches.', ex:'find . -name "*.log" | xargs grep -l "FATAL"'},
+{s:'unix', t:'find & files', cmd:'du -sh */ / df -h', desc:'du shows folder sizes (sorted-by-hand or piped to sort); df shows disk space free.', ex:'du -sh ./* | sort -h\ndf -h'},
+{s:'unix', t:'find & files', cmd:'chmod / chown', desc:'Change file permissions (e.g. +x to make executable) or ownership.', ex:'chmod +x deploy.sh\nchmod 755 script.sh\nchown jaswant:jaswant file.txt'},
+{s:'unix', t:'find & files', cmd:'tar -czvf / -xzvf', desc:'Create (c) or extract (x) a gzip-compressed tarball, verbosely.', ex:'tar -czvf backup.tar.gz ./project\ntar -xzvf backup.tar.gz'},
+{s:'unix', t:'find & files', cmd:'ln -s target link', desc:'Create a symbolic link — a shortcut that points to another file/folder.', ex:'ln -s /mnt/c/Projects ~/projects'},
+
+{s:'unix', t:'process & network', cmd:'ps aux / top', desc:'List all running processes with full detail, or watch them live with top.', ex:'ps aux --sort=-%cpu | head\ntop'},
+{s:'unix', t:'process & network', cmd:'kill -9 <PID>', desc:'Force-terminate a process by its ID (SIGKILL — last resort).', ex:'kill -9 4821'},
+{s:'unix', t:'process & network', cmd:'lsof -i :PORT', desc:'Find which process is holding a given port open.', ex:'lsof -i :3000'},
+{s:'unix', t:'process & network', cmd:'ss -tulwn', desc:'Modern replacement for netstat — list listening TCP/UDP ports.', ex:'ss -tulwn'},
+{s:'unix', t:'process & network', cmd:'curl -O / -I', desc:'Download a file (-O), or fetch just the response headers (-I) to check a URL.', ex:'curl -O https://example.com/file.zip\ncurl -I https://ldemotors.com'},
+{s:'unix', t:'process & network', cmd:'ssh / scp', desc:'Open a remote shell, or securely copy files to/from a remote host.', ex:'ssh user@server.com\nscp report.csv user@server.com:/home/user/'},
+
+{s:'unix', t:'shell habits', cmd:'history | grep', desc:'Search your shell command history instead of scrolling back.', ex:'history | grep docker'},
+{s:'unix', t:'shell habits', cmd:'alias name="command"', desc:'Create a shortcut for a longer command; put it in ~/.bashrc to keep it permanently.', ex:'alias ll="ls -la"\nalias gs="git status"'},
+{s:'unix', t:'shell habits', cmd:'crontab -e', desc:'Edit your scheduled recurring jobs (cron) — the Linux equivalent of Task Scheduler.', ex:'0 2 * * * /home/jaswant/backup.sh   # runs daily at 2am'},
+
+// ===================== INSTALL & SETUP =====================
+{s:'setup', t:'Bootstrap — do this first', cmd:'winget --version', desc:'Check if winget already exists before doing anything else. Present on most Windows 11 and updated Windows 10 machines.', ex:'winget --version'},
+{s:'setup', t:'Bootstrap — do this first', cmd:'Install App Installer (Store)', desc:'If winget is missing, this is the one browser step that unlocks it — installing "App Installer" brings winget with it. After this, everything else is command-line only.', ex:'ms-windows-store://pdp/?productid=9NBLGGH4NNS1\n(or search "App Installer" in Microsoft Store)'},
+{s:'setup', t:'Bootstrap — do this first', cmd:'Install Chocolatey', desc:'The no-browser fallback — works even when winget and the Store aren’t available (Server editions, locked-down or Core images). Needs only PowerShell + internet.', ex:'Set-ExecutionPolicy Bypass -Scope Process -Force;\n[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;\niex ((New-Object System.Net.WebClient).DownloadString(\'https://community.chocolatey.org/install.ps1\'))'},
+
+{s:'setup', t:'Package managers', cmd:'winget search / install', desc:'Windows’ built-in package manager (Win10 21H2+/Win11) — no separate install needed once present.', ex:'winget search python\nwinget install --id Python.Python.3.12'},
+{s:'setup', t:'Package managers', cmd:'winget upgrade --all', desc:'Update every app winget knows about in one shot.', ex:'winget upgrade --all'},
+{s:'setup', t:'Package managers', cmd:'winget list / uninstall', desc:'See everything winget-managed installed on this machine, or remove one.', ex:'winget list\nwinget uninstall --id Python.Python.3.12'},
+{s:'setup', t:'Package managers', cmd:'choco install / upgrade', desc:'Once Chocolatey is installed, this is its everyday install/update syntax.', ex:'choco install git python nodejs -y\nchoco upgrade all -y'},
+
+{s:'setup', t:'Languages & runtimes', cmd:'Install Python (winget)', desc:'Installs Python + pip and adds both to PATH automatically.', ex:'winget install --id Python.Python.3.12 -e'},
+{s:'setup', t:'Languages & runtimes', cmd:'python --version / pip --version', desc:'Verify Python and pip installed correctly and check versions.', ex:'python --version\npip --version'},
+{s:'setup', t:'Languages & runtimes', cmd:'python -m pip install --upgrade pip', desc:'Upgrade pip itself — the first thing to run after any fresh Python install.', ex:'python -m pip install --upgrade pip'},
+{s:'setup', t:'Languages & runtimes', cmd:'pip install / -r requirements.txt', desc:'Install a single package, or every package listed in a requirements file.', ex:'pip install requests pandas\npip install -r requirements.txt'},
+{s:'setup', t:'Languages & runtimes', cmd:'Install Node.js (winget)', desc:'Installs Node.js LTS along with npm.', ex:'winget install --id OpenJS.NodeJS.LTS -e'},
+{s:'setup', t:'Languages & runtimes', cmd:'node -v / npm -v', desc:'Verify Node and npm installed correctly and check versions.', ex:'node -v\nnpm -v'},
+{s:'setup', t:'Languages & runtimes', cmd:'npm install -g <pkg>', desc:'Install an npm package globally so its CLI is available everywhere.', ex:'npm install -g typescript nodemon'},
+{s:'setup', t:'Languages & runtimes', cmd:'Install PowerShell 7', desc:'Installs the modern, cross-platform PowerShell (pwsh) alongside the built-in Windows PowerShell 5.1.', ex:'winget install --id Microsoft.PowerShell -e'},
+
+{s:'setup', t:'Editors & dev tools', cmd:'Install Git (winget)', desc:'Installs Git for Windows, including Git Bash.', ex:'winget install --id Git.Git -e'},
+{s:'setup', t:'Editors & dev tools', cmd:'git config --global', desc:'Set your identity once so every repo picks it up (run right after installing Git).', ex:'git config --global user.name "Jaswant"\ngit config --global user.email "you@example.com"'},
+{s:'setup', t:'Editors & dev tools', cmd:'Install VS Code (winget)', desc:'Installs Visual Studio Code and registers the code command in PATH.', ex:'winget install --id Microsoft.VisualStudioCode -e'},
+{s:'setup', t:'Editors & dev tools', cmd:'Install Windows Terminal', desc:'Modern tabbed terminal with CMD, PowerShell, and WSL profiles built in.', ex:'winget install --id Microsoft.WindowsTerminal -e'},
+{s:'setup', t:'Editors & dev tools', cmd:'Install Docker Desktop', desc:'Installs Docker Desktop (uses the WSL2 backend by default on Windows).', ex:'winget install --id Docker.DockerDesktop -e'},
+{s:'setup', t:'Editors & dev tools', cmd:'Install 7-Zip / cURL / gsudo', desc:'A few small everyday utilities worth having globally installed.', ex:'winget install --id 7zip.7zip -e\nwinget install --id Gerardog.gsudo -e'},
+
+{s:'setup', t:'Virtual environments', cmd:'python -m venv .venv', desc:'Create an isolated Python environment inside your project folder.', ex:'python -m venv .venv'},
+{s:'setup', t:'Virtual environments', cmd:'Activate venv (CMD)', desc:'Activate the virtual environment from Command Prompt.', ex:'.venv\\Scripts\\activate.bat'},
+{s:'setup', t:'Virtual environments', cmd:'Activate venv (PowerShell)', desc:'Activate the virtual environment from PowerShell. If blocked, allow local scripts first.', ex:'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser\n.venv\\Scripts\\Activate.ps1'},
+{s:'setup', t:'Virtual environments', cmd:'deactivate', desc:'Leave the active virtual environment and return to your normal shell.', ex:'deactivate'},
+{s:'setup', t:'Virtual environments', cmd:'Enable WSL (feature flag)', desc:'Manually enable the WSL + Virtual Machine Platform Windows features (what wsl --install does under the hood).', ex:'dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart\ndism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart'},
+];
+
+// ---------- render ----------
+const SECTION_META = {
+  cmd: {label:'Command Prompt', color:'var(--cmd)', sub:'The classic cmd.exe — still the fastest way to do a lot of Windows admin tasks.'},
+  powershell: {label:'PowerShell', color:'var(--ps)', sub:'Object-based, pipeline-driven shell. Everything returns real data, not just text.'},
+  wsl: {label:'WSL', color:'var(--wsl)', sub:'Windows Subsystem for Linux — a real Linux kernel running alongside Windows.'},
+  unix: {label:'grep, sed, awk & friends', color:'var(--unix)', sub:'The Unix toolkit you reach for once you’re inside WSL, Git Bash, or any Linux box.'},
+  setup: {label:'Install & setup', color:'var(--setup)', sub:'Getting Python, Node, Git, and the rest of your toolkit onto a fresh machine. One bootstrap step below (winget or Chocolatey) is the gate — once either exists, everything after it runs from the command line with no browser.'},
+};
+
+let activeSection = 'all';
+let query = '';
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function matches(item){
+  if(activeSection !== 'all' && item.s !== activeSection) return false;
+  if(!query) return true;
+  const q = query.toLowerCase();
+  return item.cmd.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || item.ex.toLowerCase().includes(q) || item.t.toLowerCase().includes(q);
+}
+
+function render(){
+  const filtered = DATA.filter(matches);
+  const main = document.getElementById('main');
+  document.getElementById('resultCount').textContent = query ? `${filtered.length} match${filtered.length!==1?'es':''}` : '';
+
+  if(filtered.length === 0){
+    main.innerHTML = `<div class="empty"><div class="display">No matches</div>Try a shorter word — e.g. "kill", "grep", or "wsl"</div>`;
+    return;
+  }
+
+  const sectionsToShow = activeSection === 'all' ? ['cmd','powershell','wsl','unix','setup'] : [activeSection];
+  let html = '';
+
+  sectionsToShow.forEach(secKey=>{
+    const items = filtered.filter(i=>i.s===secKey);
+    if(items.length === 0) return;
+    const meta = SECTION_META[secKey];
+    html += `<div class="section" id="sec-${secKey}">
+      <div class="section-head">
+        <h2>${meta.label}</h2>
+        <span class="tag" style="color:${meta.color}">${items.length}</span>
+      </div>
+      <p class="section-sub">${meta.sub}</p>`;
+
+    const tiers = [...new Set(items.map(i=>i.t))];
+    // keep a sensible order: Basic, Useful/Advanced tiers, then rest
+    const order = ['Bootstrap — do this first','Basic','Useful','Advanced'];
+    tiers.sort((a,b)=>{
+      const ai = order.indexOf(a), bi = order.indexOf(b);
+      if(ai===-1 && bi===-1) return a.localeCompare(b);
+      if(ai===-1) return 1;
+      if(bi===-1) return -1;
+      return ai-bi;
+    });
+
+    tiers.forEach(tier=>{
+      const tierItems = items.filter(i=>i.t===tier);
+      html += `<div class="tier-label">${tier}</div><div class="cards">`;
+      tierItems.forEach((item,idx)=>{
+        const uid = `${secKey}-${tier}-${idx}`.replace(/\s+/g,'_');
+        html += `<div class="card" style="--card-accent:${meta.color}">
+          <div class="card-top">
+            <div class="cmd">${escapeHtml(item.cmd)}</div>
+            <button class="copy-btn" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button>
+          </div>
+          <p class="desc">${escapeHtml(item.desc)}</p>
+          <div class="example">${escapeHtml(item.ex)}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  main.innerHTML = html;
+}
+
+function doCopy(btn){
+  const text = decodeURIComponent(btn.getAttribute('data-copy'));
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = 'copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+  });
+}
+
+// ---------- nav ----------
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeSection = btn.getAttribute('data-target');
+    render();
+    window.scrollTo({top: document.querySelector('.layout').offsetTop - 70, behavior:'smooth'});
+  });
+});
+
+// ---------- collapsible sidebar (horizontal) ----------
+const navToggle = document.getElementById('navToggle');
+const sidebarEl = document.getElementById('sidebar');
+navToggle.addEventListener('click', ()=>{
+  const collapsed = sidebarEl.classList.toggle('collapsed');
+  navToggle.setAttribute('aria-expanded', String(!collapsed));
+  navToggle.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+});
+
+// ---------- theme toggle ----------
+const themeToggle = document.getElementById('themeToggle');
+const htmlEl = document.documentElement;
+
+function applyTheme(theme){
+  htmlEl.setAttribute('data-theme', theme);
+  try{ localStorage.setItem('shellref-theme', theme); }catch(e){}
+}
+
+(function initTheme(){
+  let saved = null;
+  try{ saved = localStorage.getItem('shellref-theme'); }catch(e){}
+  if(saved === 'light' || saved === 'dark'){
+    applyTheme(saved);
+  } else {
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    applyTheme(prefersLight ? 'light' : 'dark');
+  }
+})();
+
+themeToggle.addEventListener('click', ()=>{
+  const current = htmlEl.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+});
+
+// ---------- jump to top ----------
+const toTopBtn = document.getElementById('toTop');
+window.addEventListener('scroll', ()=>{
+  toTopBtn.classList.toggle('visible', window.scrollY > 480);
+});
+toTopBtn.addEventListener('click', ()=>{
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+// ---------- search ----------
+document.getElementById('search').addEventListener('input', (e)=>{
+  query = e.target.value.trim();
+  render();
+});
+
+// ---------- stats ----------
+function setStats(){
+  document.getElementById('statCmd').textContent = DATA.filter(i=>i.s==='cmd').length;
+  document.getElementById('statPs').textContent = DATA.filter(i=>i.s==='powershell').length;
+  document.getElementById('statWsl').textContent = DATA.filter(i=>i.s==='wsl').length;
+  document.getElementById('statUnix').textContent = DATA.filter(i=>i.s==='unix').length;
+  document.getElementById('statSetup').textContent = DATA.filter(i=>i.s==='setup').length;
+  document.getElementById('cAll').textContent = DATA.length;
+  document.getElementById('cCmd').textContent = DATA.filter(i=>i.s==='cmd').length;
+  document.getElementById('cPs').textContent = DATA.filter(i=>i.s==='powershell').length;
+  document.getElementById('cWsl').textContent = DATA.filter(i=>i.s==='wsl').length;
+  document.getElementById('cUnix').textContent = DATA.filter(i=>i.s==='unix').length;
+  document.getElementById('cSetup').textContent = DATA.filter(i=>i.s==='setup').length;
+}
+
+// ---------- hero typer ----------
+const TYPE_SEQ = [
+  {p:'C:\\Users\\jaswant&gt;', c:'ipconfig /all'},
+  {p:'PS C:\\Users\\jaswant&gt;', c:'Get-Process | Sort CPU -Descending | select -First 5'},
+  {p:'jaswant@wsl:~$', c:'grep -ri "error" ./logs | wc -l'},
+];
+let seqIndex = 0;
+
+function typeSequence(){
+  const el = document.getElementById('typer');
+  const item = TYPE_SEQ[seqIndex % TYPE_SEQ.length];
+  el.innerHTML = `<div class="prompt-line"><span class="p mono">${item.p}</span><span class="c mono" id="typedText"></span><span class="cursor"></span></div>`;
+  const target = document.getElementById('typedText');
+  let i = 0;
+  const typeInterval = setInterval(()=>{
+    target.textContent = item.c.slice(0, i+1);
+    i++;
+    if(i >= item.c.length){
+      clearInterval(typeInterval);
+      setTimeout(()=>{
+        seqIndex++;
+        typeSequence();
+      }, 1800);
+    }
+  }, 32);
+}
+
+setStats();
+render();
+typeSequence();
+</script>
+</body>
+</html>
