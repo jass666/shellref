@@ -2,6 +2,18 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v1.5 - Subfolder scope toggle in the Command Generator
+
+* Added a "Search in" dropdown (This folder + subfolders / This folder only) to every generator task that touches a folder tree: find by extension, find by name, find recently modified, find large files, delete by extension, search text in files.
+* Generator now branches its `build()` output per shell so the correct flag is used both ways: `/s` `/b` vs plain `dir`, `-Recurse` vs none, `find` default-recursive vs `-maxdepth 1`, `for /r` loop vs plain `del`, `pushd && findstr /S` vs plain `findstr`, `grep -r` vs `find -maxdepth 1 -exec grep`.
+* Added a reusable `SCOPE_PARAM` field definition and a `select`-type field renderer in the generator UI (previously all fields were plain text inputs).
+
+## v1.4 - Fix del /s and findstr /S recursion with explicit paths
+
+* **Bug fix**: `del /s "D:\Folder\*.ext"` (Delete all files with an extension → CMD) recursed from the *current* working directory rather than the path typed in the pattern, so it could report "File Not Found" even when matching files existed in subfolders of the target path. Replaced with a `for /r "path" %f in (*.ext) do @del "%f"` loop, which walks the given path correctly regardless of current directory.
+* Same root cause affects `findstr /S` (Search for text inside files → CMD): fixed by wrapping the command in `pushd "path" && findstr /S ... & popd`, so the search runs from inside the target folder.
+* Added gotcha notes to the static reference cards for `copy / move / del`, `findstr`, and `mkdir / rmdir` explaining the distinction — `dir /s`, `rmdir /s`, and `forfiles /s` all recurse correctly from an explicit path; `del /s` and `findstr /S` alone do not.
+
 ## v1.3 - Better search + command generator
 
 * Added a `kw` (keywords) field to most command entries covering common alternate phrasings and use cases (e.g. "find files by extension", "kill process by name", "check disk space") so search finds a command even when the query doesn't match its literal syntax or description text.

@@ -281,6 +281,7 @@
     border-radius:7px; padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:13px;
   }
   .gen-field-input:focus{ outline:none; border-color:var(--amber); }
+  .gen-field-select{ cursor:pointer; }
 
   .gen-output-wrap{ margin-top:4px; }
   .gen-output-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
@@ -377,8 +378,8 @@ const DATA = [
 {s:'cmd', t:'Basic', cmd:'dir /a /o:d', desc:'List files (incl. hidden), sorted by date.', ex:'dir /a /o:d', kw:'list files show files ls dir'},
 {s:'cmd', t:'Basic', cmd:'dir *.ext /s /b', desc:'Find every file with a given extension, searching all subfolders. /b prints bare full paths (no headers) — good for scripting or piping.', ex:'dir *.crd /s /b\ndir C:\\Projects\\*.log /s /b', kw:'find files by extension search for extension filetype file type crd log filter files'},
 {s:'cmd', t:'Basic', cmd:'cd, cd..', desc:'Show/change directory; cd.. moves up one level.', ex:'cd C:\\Projects\ncd ..', kw:'change directory navigate folder'},
-{s:'cmd', t:'Basic', cmd:'copy / move / del', desc:'Copy, move/rename, or delete files.', ex:'copy a.txt b.txt\nmove b.txt D:\\Backup\\\ndel b.txt', kw:'rename delete remove file'},
-{s:'cmd', t:'Basic', cmd:'mkdir / rmdir', desc:'Create or remove a directory. Add /s to remove non-empty folders.', ex:'mkdir logs\nrmdir /s /q logs', kw:'create folder delete folder new directory'},
+{s:'cmd', t:'Basic', cmd:'copy / move / del', desc:'Copy, move/rename, or delete files. Gotcha: del /s "D:\\Folder\\*.ext" recurses from your current directory, not from D:\\Folder — it can report "File Not Found" even when matching files exist in subfolders. cd into the folder first, or use a for /r loop, to delete recursively by extension.', ex:'copy a.txt b.txt\nmove b.txt D:\\Backup\\\ndel b.txt\nfor /r "D:\\Folder" %f in (*.tmp) do @del "%f"', kw:'rename delete remove file recursive subfolder del not working'},
+{s:'cmd', t:'Basic', cmd:'mkdir / rmdir', desc:'Create or remove a directory. Add /s to remove non-empty folders. Note: rmdir /s takes the folder itself as its argument so it recurses correctly — this is different from del /s (see Useful tier), which recurses from your current directory, not from a path typed inside the pattern.', ex:'mkdir logs\nrmdir /s /q logs', kw:'create folder delete folder new directory'},
 {s:'cmd', t:'Basic', cmd:'type', desc:'Print a file’s contents to the console (like cat).', ex:'type notes.txt', kw:'read file view file cat print file contents'},
 {s:'cmd', t:'Basic', cmd:'cls', desc:'Clear the console screen.', ex:'cls', kw:'clear screen clean terminal'},
 {s:'cmd', t:'Basic', cmd:'echo %VAR%', desc:'Print text or an environment variable’s value.', ex:'echo %PATH%', kw:'print environment variable show value'},
@@ -390,7 +391,7 @@ const DATA = [
 {s:'cmd', t:'Useful', cmd:'netstat -ano', desc:'List active connections/ports with owning process IDs.', ex:'netstat -ano | findstr :443', kw:'list open ports what is using this port'},
 {s:'cmd', t:'Useful', cmd:'tasklist / taskkill', desc:'List running processes; force-kill by PID or image name.', ex:'tasklist | findstr chrome\ntaskkill /PID 4821 /F\ntaskkill /IM chrome.exe /F', kw:'kill process stop program end task by name or pid'},
 {s:'cmd', t:'Useful', cmd:'systeminfo', desc:'Full OS, hardware, and patch-level summary.', ex:'systeminfo | findstr /C:"OS Version"', kw:'check windows version hardware specs'},
-{s:'cmd', t:'Useful', cmd:'findstr', desc:'CMD’s built-in grep — search text inside one or many files, supports wildcards and regex with /R. Not for finding files by name/extension — use dir *.ext /s /b for that.', ex:'findstr /S /I "TODO" *.js\nfindstr /R "^Error" log.txt', kw:'search text inside file grep for windows find string in files'},
+{s:'cmd', t:'Useful', cmd:'findstr', desc:'CMD’s built-in grep — search text inside one or many files, supports wildcards and regex with /R. Not for finding files by name/extension — use dir *.ext /s /b for that. Gotcha: /S recurses from your current directory, not from a path you type in the pattern — cd into the target folder first (or use pushd/popd), otherwise it silently misses subfolders.', ex:'findstr /S /I "TODO" *.js\npushd "C:\\Projects" && findstr /S /I "TODO" *.js & popd', kw:'search text inside file grep for windows find string in files recursive subfolder'},
 {s:'cmd', t:'Useful', cmd:'xcopy / robocopy', desc:'Copy folder trees. robocopy is the modern, more reliable choice (mirroring, retries, logs).', ex:'xcopy C:\\Src D:\\Dst /E /H /C /I\nrobocopy C:\\Src D:\\Dst /MIR /LOG:copy.log', kw:'copy folder recursively backup mirror directory'},
 {s:'cmd', t:'Useful', cmd:'sfc /scannow', desc:'Scan and repair corrupted Windows system files.', ex:'sfc /scannow', kw:'fix windows repair system files'},
 {s:'cmd', t:'Useful', cmd:'chkdsk C: /f /r', desc:'Check a drive for errors and repair/recover bad sectors (needs reboot for C:).', ex:'chkdsk C: /f /r', kw:'disk check repair bad sectors'},
@@ -533,50 +534,64 @@ const DATA = [
 // ---------- command generator ----------
 // Each task defines, per shell, the input fields it needs and a build(values) function
 // that returns the finished command string. 'd' on a param is its default value.
+// Reusable "this folder only" vs "include subfolders" toggle, spread into any task that searches a folder tree
+const SCOPE_PARAM = {k:'scope', l:'Search in', type:'select', d:'sub',
+  options:[{v:'sub',l:'This folder + subfolders'},{v:'top',l:'This folder only'}]};
+
 const GENERATORS = [
   { id:'find-ext', label:'Find files by extension', cat:'Files', shells:{
-    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`dir "${v.path}\\*.${v.ext}" /s /b` },
-    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse` },
-    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`find ${v.path} -type f -name "*.${v.ext}"` },
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `dir "${v.path}\\*.${v.ext}" /b` : `dir "${v.path}\\*.${v.ext}" /s /b` },
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext}` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse` },
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f -name "*.${v.ext}"` : `find ${v.path} -type f -name "*.${v.ext}"` },
   }},
   { id:'find-name', label:'Find files by name (partial match)', cat:'Files', shells:{
-    cmd:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`dir "${v.path}\\*${v.name}*" /s /b` },
-    powershell:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *${v.name}* -Recurse` },
-    unix:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`find ${v.path} -iname "*${v.name}*"` },
+    cmd:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `dir "${v.path}\\*${v.name}*" /b` : `dir "${v.path}\\*${v.name}*" /s /b` },
+    powershell:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `Get-ChildItem -Path "${v.path}" -Filter *${v.name}*` : `Get-ChildItem -Path "${v.path}" -Filter *${v.name}* -Recurse` },
+    unix:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -iname "*${v.name}*"` : `find ${v.path} -iname "*${v.name}*"` },
   }},
   { id:'find-recent', label:'Find files modified in the last N days', cat:'Files', shells:{
-    powershell:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-${v.days}) }` },
-    unix:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`find ${v.path} -type f -mtime -${v.days}` },
+    powershell:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top'
+        ? `Get-ChildItem -Path "${v.path}" | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-${v.days}) }`
+        : `Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-${v.days}) }` },
+    unix:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f -mtime -${v.days}` : `find ${v.path} -type f -mtime -${v.days}` },
   }},
   { id:'find-large', label:'Find files larger than N MB', cat:'Files', shells:{
-    powershell:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.Length -gt ${v.size}MB }` },
-    unix:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`find ${v.path} -type f -size +${v.size}M` },
+    powershell:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top'
+        ? `Get-ChildItem -Path "${v.path}" | Where-Object { $_.Length -gt ${v.size}MB }`
+        : `Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.Length -gt ${v.size}MB }` },
+    unix:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f -size +${v.size}M` : `find ${v.path} -type f -size +${v.size}M` },
   }},
   { id:'delete-ext', label:'Delete all files with an extension', cat:'Files', shells:{
-    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'}],
-      build:v=>`del /s "${v.path}\\*.${v.ext}"` },
-    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
-    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`find ${v.path} -name "*.${v.ext}" -delete` },
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `del "${v.path}\\*.${v.ext}"` : `for /r "${v.path}" %f in (*.${v.ext}) do @del "%f"` },
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `Remove-Item -Path "${v.path}\\*.${v.ext}" -Force` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -name "*.${v.ext}" -delete` : `find ${v.path} -name "*.${v.ext}" -delete` },
   }},
   { id:'search-text', label:'Search for text inside files', cat:'Search', shells:{
-    cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`findstr /S /I /C:"${v.text}" "${v.path}\\*.*"` },
-    powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
-      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse -File | Select-String -Pattern "${v.text}"` },
-    unix:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
-      build:v=>`grep -rin "${v.text}" ${v.path}` },
+    cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top'
+        ? `findstr /I /C:"${v.text}" "${v.path}\\*.*"`
+        : `pushd "${v.path}" && findstr /S /I /C:"${v.text}" *.* & popd` },
+    powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'},SCOPE_PARAM],
+      build:v=> v.scope==='top'
+        ? `Get-ChildItem -Path "${v.path}" -File | Select-String -Pattern "${v.text}"`
+        : `Get-ChildItem -Path "${v.path}" -Recurse -File | Select-String -Pattern "${v.text}"` },
+    unix:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'.',d:'.'},SCOPE_PARAM],
+      build:v=> v.scope==='top'
+        ? `find ${v.path} -maxdepth 1 -type f -exec grep -in "${v.text}" {} +`
+        : `grep -rin "${v.text}" ${v.path}` },
   }},
   { id:'kill-process', label:'Kill a process by name', cat:'Processes', shells:{
     cmd:{ params:[{k:'name',l:'Process / image name',ph:'chrome.exe',d:'chrome.exe'}],
@@ -676,10 +691,18 @@ function renderGenerator(){
   let fieldsHtml = '';
   conf.params.forEach(p=>{
     const val = genState.values[p.k] !== undefined ? genState.values[p.k] : '';
-    fieldsHtml += `<label class="gen-field">
-      <span class="gen-field-label">${escapeHtml(p.l)}</span>
-      <input type="text" class="gen-field-input" data-key="${escapeHtml(p.k)}" placeholder="${escapeHtml(p.ph||'')}" value="${escapeHtml(val)}" oninput="onGenInput(this)" autocomplete="off" spellcheck="false">
-    </label>`;
+    if(p.type === 'select'){
+      const optsHtml = p.options.map(o=>`<option value="${escapeHtml(o.v)}"${o.v===val?' selected':''}>${escapeHtml(o.l)}</option>`).join('');
+      fieldsHtml += `<label class="gen-field">
+        <span class="gen-field-label">${escapeHtml(p.l)}</span>
+        <select class="gen-field-input gen-field-select" data-key="${escapeHtml(p.k)}" onchange="onGenInput(this)">${optsHtml}</select>
+      </label>`;
+    } else {
+      fieldsHtml += `<label class="gen-field">
+        <span class="gen-field-label">${escapeHtml(p.l)}</span>
+        <input type="text" class="gen-field-input" data-key="${escapeHtml(p.k)}" placeholder="${escapeHtml(p.ph||'')}" value="${escapeHtml(val)}" oninput="onGenInput(this)" autocomplete="off" spellcheck="false">
+      </label>`;
+    }
   });
 
   main.innerHTML = `<div class="gen-wrap">
