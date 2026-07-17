@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v1.6 - Persisted history for the Command Generator
+
+* Every command copied from the generator is now saved to a "Recent commands" list underneath it — task name, shell, full command text, and a relative timestamp (e.g. "3m ago").
+* History is stored in `localStorage` (`shellref-gen-history`, capped at 50 entries) so it survives page reloads and browser restarts; nothing leaves the browser.
+* Saving happens on copy, not on every keystroke, so the list reflects commands actually used rather than every in-progress edit. Copying the same command again just refreshes its timestamp instead of adding a duplicate.
+* Each saved entry has its own `copy` (re-copy that command), `use` (reload it back into the generator with its original task/shell/field values for tweaking), and `✕` (remove) actions, plus a `clear` control to wipe the whole list (confirms first if non-empty).
+* Added `.gen-history-*` styles reusing the existing theme variables and shell accent colors, so the panel matches light/dark mode automatically.
+
 ## v1.5 - Subfolder scope toggle in the Command Generator
 
 * Added a "Search in" dropdown (This folder + subfolders / This folder only) to every generator task that touches a folder tree: find by extension, find by name, find recently modified, find large files, delete by extension, search text in files.

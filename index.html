@@ -288,6 +288,32 @@
   .gen-output-label{ font-size:11.5px; color:var(--muted); }
   .gen-output{ font-size:13px; }
 
+  .gen-history-panel{ max-width:920px; margin-top:22px; }
+  .gen-history-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .gen-history-title{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .gen-history-count{ color:var(--muted-2); text-transform:none; letter-spacing:0; font-weight:400; margin-left:8px; }
+  .gen-history-list{ display:flex; flex-direction:column; gap:8px; }
+  .gen-history-empty{
+    font-size:12.5px; color:var(--muted-2); padding:14px; border:1px dashed var(--border); border-radius:8px;
+  }
+  .gen-history-item{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+  }
+  .gen-history-main{ min-width:0; flex:1; }
+  .gen-history-top{ display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap; }
+  .gen-history-label{ font-size:12px; color:var(--text); font-weight:500; }
+  .gen-history-shell{
+    font-size:10px; padding:1px 7px; border-radius:999px; color:#0B0E13;
+    background:var(--tab-accent); font-weight:600;
+  }
+  .gen-history-time{ font-size:11px; color:var(--muted-2); }
+  .gen-history-cmd{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--example-text);
+    white-space:pre-wrap; word-break:break-all;
+  }
+  .gen-history-actions{ display:flex; gap:6px; flex-shrink:0; }
+
   .empty{ text-align:center; padding:60px 20px; color:var(--muted-2); }
   .empty .display{ font-size:18px; color:var(--muted); margin-bottom:6px; }
 
@@ -642,6 +668,117 @@ const GENERATORS = [
 const GEN_SHELL_LABELS = { cmd:'Command Prompt', powershell:'PowerShell', unix:'WSL / Unix' };
 const GEN_SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(--unix)' };
 
+// ---------- generator history (persisted across visits) ----------
+const GEN_HISTORY_KEY = 'shellref-gen-history';
+const GEN_HISTORY_MAX = 50;
+let genHistory = [];
+try{ genHistory = JSON.parse(localStorage.getItem(GEN_HISTORY_KEY)) || []; }catch(e){ genHistory = []; }
+
+function saveGenHistory(){
+  try{ localStorage.setItem(GEN_HISTORY_KEY, JSON.stringify(genHistory)); }catch(e){}
+}
+
+function pushGenHistory(){
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const command = currentGenOutput();
+  if(!task || !command) return;
+  // if the most recent entry is the exact same command, just bump its time instead of duplicating
+  const top = genHistory[0];
+  if(top && top.taskId===genState.taskId && top.shell===genState.shell && top.command===command){
+    top.ts = Date.now();
+    saveGenHistory();
+    updateGenHistoryUI();
+    return;
+  }
+  genHistory.unshift({
+    id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+    taskId: genState.taskId,
+    label: task.label,
+    shell: genState.shell,
+    values: {...genState.values},
+    command,
+    ts: Date.now()
+  });
+  if(genHistory.length > GEN_HISTORY_MAX) genHistory.length = GEN_HISTORY_MAX;
+  saveGenHistory();
+  updateGenHistoryUI();
+}
+
+function onHistoryUse(id){
+  const entry = genHistory.find(h=>h.id===id);
+  if(!entry) return;
+  const task = GENERATORS.find(t=>t.id===entry.taskId);
+  if(!task || !task.shells[entry.shell]) return;
+  genState = { taskId: entry.taskId, shell: entry.shell, values: {...entry.values} };
+  renderGenerator();
+}
+
+function onHistoryCopy(id, btn){
+  const entry = genHistory.find(h=>h.id===id);
+  if(!entry) return;
+  navigator.clipboard.writeText(entry.command).then(()=>{
+    if(!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = 'copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+  });
+}
+
+function onHistoryRemove(id){
+  genHistory = genHistory.filter(h=>h.id!==id);
+  saveGenHistory();
+  updateGenHistoryUI();
+}
+
+function onHistoryClear(){
+  if(genHistory.length && !confirm('Clear all saved commands?')) return;
+  genHistory = [];
+  saveGenHistory();
+  updateGenHistoryUI();
+}
+
+function formatRelTime(ts){
+  const diff = Math.max(0, Date.now() - ts);
+  const min = Math.floor(diff/60000);
+  if(min < 1) return 'just now';
+  if(min < 60) return `${min}m ago`;
+  const hr = Math.floor(min/60);
+  if(hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr/24);
+  if(day < 7) return `${day}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+
+function renderGenHistoryHtml(){
+  if(!genHistory.length){
+    return `<div class="gen-history-empty">No saved commands yet — hit <strong>copy</strong> on a generated command to keep it here.</div>`;
+  }
+  return genHistory.map(h=>`
+    <div class="gen-history-item">
+      <div class="gen-history-main">
+        <div class="gen-history-top">
+          <span class="gen-history-label">${escapeHtml(h.label)}</span>
+          <span class="gen-history-shell" style="--tab-accent:${GEN_SHELL_COLORS[h.shell]}">${GEN_SHELL_LABELS[h.shell]}</span>
+          <span class="gen-history-time">${formatRelTime(h.ts)}</span>
+        </div>
+        <div class="gen-history-cmd">${escapeHtml(h.command)}</div>
+      </div>
+      <div class="gen-history-actions">
+        <button type="button" class="copy-btn" onclick="onHistoryCopy('${h.id}', this)">copy</button>
+        <button type="button" class="copy-btn" onclick="onHistoryUse('${h.id}')">use</button>
+        <button type="button" class="copy-btn" onclick="onHistoryRemove('${h.id}')" title="Remove">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function updateGenHistoryUI(){
+  const listEl = document.getElementById('genHistoryList');
+  if(listEl) listEl.innerHTML = renderGenHistoryHtml();
+  const countEl = document.getElementById('genHistoryCount');
+  if(countEl) countEl.textContent = genHistory.length ? `${genHistory.length} saved` : '';
+}
+
 let genState = { taskId: null, shell: null, values: {} };
 
 function initGenState(taskId, preferredShell){
@@ -724,6 +861,13 @@ function renderGenerator(){
         </div>
       </div>
     </div>
+    <div class="gen-history-panel">
+      <div class="gen-history-header">
+        <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>
+        <button type="button" class="copy-btn" onclick="onHistoryClear()">clear</button>
+      </div>
+      <div class="gen-history-list" id="genHistoryList">${renderGenHistoryHtml()}</div>
+    </div>
   </div>`;
 }
 
@@ -750,6 +894,7 @@ function copyGenOutput(btn){
     btn.textContent = 'copied';
     btn.classList.add('copied');
     setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+    pushGenHistory();
   });
 }
 
