@@ -238,6 +238,55 @@
   }
   .card .example .cm{ color:var(--muted-2); }
 
+  .nav-divider{ height:1px; background:var(--border-soft); margin:8px 4px; }
+  nav.sidebar.collapsed .nav-divider{ margin:8px 8px; }
+
+  /* ===== Command generator ===== */
+  .gen-wrap{ max-width:920px; }
+  .gen-intro h2{ font-family:'Space Grotesk', sans-serif; font-size:22px; font-weight:600; margin:0 0 4px; letter-spacing:-0.01em; }
+  .gen-layout{ display:grid; grid-template-columns:220px 1fr; gap:20px; margin-top:20px; align-items:start; }
+  @media (max-width: 720px){ .gen-layout{ grid-template-columns:1fr; } }
+
+  .gen-tasks{ display:flex; flex-direction:column; gap:2px; }
+  .gen-cat-label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted-2); margin:14px 0 4px; }
+  .gen-cat-label:first-child{ margin-top:0; }
+  .gen-task-btn{
+    text-align:left; background:transparent; border:1px solid transparent; color:var(--muted);
+    padding:7px 9px; border-radius:7px; font-size:13px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif;
+    transition:all .12s;
+  }
+  .gen-task-btn:hover{ background:var(--panel-hover); color:var(--text); }
+  .gen-task-btn.active{ background:var(--panel); border-color:var(--border); color:var(--text); font-weight:500; }
+
+  .gen-build{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px; border-top:3px solid var(--card-accent, var(--border));
+  }
+  .gen-shell-tabs{ display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .gen-shell-tab{
+    background:transparent; border:1px solid var(--border); color:var(--muted);
+    padding:6px 12px; border-radius:20px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif;
+    transition:all .12s;
+  }
+  .gen-shell-tab:hover{ color:var(--text); border-color:var(--muted-2); }
+  .gen-shell-tab.active{ background:var(--tab-accent); border-color:var(--tab-accent); color:#0B0E13; font-weight:600; }
+
+  .gen-fields{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px; }
+  .gen-field{ display:flex; flex-direction:column; gap:5px; }
+  .gen-field-label{ font-size:11.5px; color:var(--muted); }
+  .gen-field-input{
+    background:var(--bg); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:13px;
+  }
+  .gen-field-input:focus{ outline:none; border-color:var(--amber); }
+
+  .gen-output-wrap{ margin-top:4px; }
+  .gen-output-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .gen-output-label{ font-size:11.5px; color:var(--muted); }
+  .gen-output{ font-size:13px; }
+
   .empty{ text-align:center; padding:60px 20px; color:var(--muted-2); }
   .empty .display{ font-size:18px; color:var(--muted); margin-bottom:6px; }
 
@@ -280,7 +329,7 @@
 <section class="hero">
   <div>
     <h1>Four shells.<br>One <span class="accent">reference</span> that doesn't make you tab-switch.</h1>
-    <p>CMD, PowerShell, WSL, and the Unix tools that live inside it — the commands worth remembering, plus the advanced ones worth looking up. Search once, find it in whichever shell you're actually in.</p>
+    <p>CMD, PowerShell, WSL, and the Unix tools that live inside it — the commands worth remembering, plus the advanced ones worth looking up. Search once, find it in whichever shell you're actually in. Can't find what you need? The <strong>command generator</strong> in the sidebar builds it for you.</p>
     <div class="stats">
       <div><div class="n" id="statCmd">0</div><div class="l">cmd.exe</div></div>
       <div><div class="n" id="statPs">0</div><div class="l">powershell</div></div>
@@ -308,6 +357,8 @@
     <button class="nav-btn" data-target="wsl" title="WSL"><span class="nav-btn-main"><span class="dot" style="background:var(--wsl)"></span><span class="label-text">WSL</span></span><span class="count" id="cWsl">0</span></button>
     <button class="nav-btn" data-target="unix" title="grep, sed, awk & friends"><span class="nav-btn-main"><span class="dot" style="background:var(--unix)"></span><span class="label-text">grep, sed, awk &amp; friends</span></span><span class="count" id="cUnix">0</span></button>
     <button class="nav-btn" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
+    <div class="nav-divider"></div>
+    <button class="nav-btn" data-target="generator" title="Command Generator"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Command generator</span></span></button>
     </div>
   </nav>
 
@@ -323,133 +374,135 @@
 <script>
 const DATA = [
 // ===================== CMD =====================
-{s:'cmd', t:'Basic', cmd:'dir /a /o:d', desc:'List files (incl. hidden), sorted by date.', ex:'dir /a /o:d'},
-{s:'cmd', t:'Basic', cmd:'cd, cd..', desc:'Show/change directory; cd.. moves up one level.', ex:'cd C:\\Projects\ncd ..'},
-{s:'cmd', t:'Basic', cmd:'copy / move / del', desc:'Copy, move/rename, or delete files.', ex:'copy a.txt b.txt\nmove b.txt D:\\Backup\\\ndel b.txt'},
-{s:'cmd', t:'Basic', cmd:'mkdir / rmdir', desc:'Create or remove a directory. Add /s to remove non-empty folders.', ex:'mkdir logs\nrmdir /s /q logs'},
-{s:'cmd', t:'Basic', cmd:'type', desc:'Print a file’s contents to the console (like cat).', ex:'type notes.txt'},
-{s:'cmd', t:'Basic', cmd:'cls', desc:'Clear the console screen.', ex:'cls'},
-{s:'cmd', t:'Basic', cmd:'echo %VAR%', desc:'Print text or an environment variable’s value.', ex:'echo %PATH%'},
+{s:'cmd', t:'Basic', cmd:'dir /a /o:d', desc:'List files (incl. hidden), sorted by date.', ex:'dir /a /o:d', kw:'list files show files ls dir'},
+{s:'cmd', t:'Basic', cmd:'dir *.ext /s /b', desc:'Find every file with a given extension, searching all subfolders. /b prints bare full paths (no headers) — good for scripting or piping.', ex:'dir *.crd /s /b\ndir C:\\Projects\\*.log /s /b', kw:'find files by extension search for extension filetype file type crd log filter files'},
+{s:'cmd', t:'Basic', cmd:'cd, cd..', desc:'Show/change directory; cd.. moves up one level.', ex:'cd C:\\Projects\ncd ..', kw:'change directory navigate folder'},
+{s:'cmd', t:'Basic', cmd:'copy / move / del', desc:'Copy, move/rename, or delete files.', ex:'copy a.txt b.txt\nmove b.txt D:\\Backup\\\ndel b.txt', kw:'rename delete remove file'},
+{s:'cmd', t:'Basic', cmd:'mkdir / rmdir', desc:'Create or remove a directory. Add /s to remove non-empty folders.', ex:'mkdir logs\nrmdir /s /q logs', kw:'create folder delete folder new directory'},
+{s:'cmd', t:'Basic', cmd:'type', desc:'Print a file’s contents to the console (like cat).', ex:'type notes.txt', kw:'read file view file cat print file contents'},
+{s:'cmd', t:'Basic', cmd:'cls', desc:'Clear the console screen.', ex:'cls', kw:'clear screen clean terminal'},
+{s:'cmd', t:'Basic', cmd:'echo %VAR%', desc:'Print text or an environment variable’s value.', ex:'echo %PATH%', kw:'print environment variable show value'},
 
-{s:'cmd', t:'Useful', cmd:'ipconfig /all', desc:'Full network adapter details — IP, DNS, MAC, gateway.', ex:'ipconfig /all'},
-{s:'cmd', t:'Useful', cmd:'ipconfig /flushdns', desc:'Clear the local DNS resolver cache.', ex:'ipconfig /flushdns'},
-{s:'cmd', t:'Useful', cmd:'ping / tracert', desc:'Test reachability, or trace the route to a host.', ex:'ping google.com -t\ntracert google.com'},
-{s:'cmd', t:'Useful', cmd:'nslookup', desc:'Query DNS records for a domain.', ex:'nslookup ldemotors.com'},
-{s:'cmd', t:'Useful', cmd:'netstat -ano', desc:'List active connections/ports with owning process IDs.', ex:'netstat -ano | findstr :443'},
-{s:'cmd', t:'Useful', cmd:'tasklist / taskkill', desc:'List running processes; force-kill by PID or image name.', ex:'tasklist | findstr chrome\ntaskkill /PID 4821 /F\ntaskkill /IM chrome.exe /F'},
-{s:'cmd', t:'Useful', cmd:'systeminfo', desc:'Full OS, hardware, and patch-level summary.', ex:'systeminfo | findstr /C:"OS Version"'},
-{s:'cmd', t:'Useful', cmd:'findstr', desc:'CMD’s built-in grep — search text in files, supports regex with /R.', ex:'findstr /S /I "TODO" *.js\nfindstr /R "^Error" log.txt'},
-{s:'cmd', t:'Useful', cmd:'xcopy / robocopy', desc:'Copy folder trees. robocopy is the modern, more reliable choice (mirroring, retries, logs).', ex:'xcopy C:\\Src D:\\Dst /E /H /C /I\nrobocopy C:\\Src D:\\Dst /MIR /LOG:copy.log'},
-{s:'cmd', t:'Useful', cmd:'sfc /scannow', desc:'Scan and repair corrupted Windows system files.', ex:'sfc /scannow'},
-{s:'cmd', t:'Useful', cmd:'chkdsk C: /f /r', desc:'Check a drive for errors and repair/recover bad sectors (needs reboot for C:).', ex:'chkdsk C: /f /r'},
-{s:'cmd', t:'Useful', cmd:'setx', desc:'Permanently set an environment variable (persists across sessions, unlike set).', ex:'setx NODE_ENV "production"'},
-{s:'cmd', t:'Useful', cmd:'shutdown /r /t 0', desc:'Restart (or /s to shut down) immediately, or after /t seconds.', ex:'shutdown /r /t 60\nshutdown /a  (cancel it)'},
+{s:'cmd', t:'Useful', cmd:'ipconfig /all', desc:'Full network adapter details — IP, DNS, MAC, gateway.', ex:'ipconfig /all', kw:'show ip address network info'},
+{s:'cmd', t:'Useful', cmd:'ipconfig /flushdns', desc:'Clear the local DNS resolver cache.', ex:'ipconfig /flushdns', kw:'reset dns cache'},
+{s:'cmd', t:'Useful', cmd:'ping / tracert', desc:'Test reachability, or trace the route to a host.', ex:'ping google.com -t\ntracert google.com', kw:'check internet connectivity network hop'},
+{s:'cmd', t:'Useful', cmd:'nslookup', desc:'Query DNS records for a domain.', ex:'nslookup ldemotors.com', kw:'dns lookup resolve domain'},
+{s:'cmd', t:'Useful', cmd:'netstat -ano', desc:'List active connections/ports with owning process IDs.', ex:'netstat -ano | findstr :443', kw:'list open ports what is using this port'},
+{s:'cmd', t:'Useful', cmd:'tasklist / taskkill', desc:'List running processes; force-kill by PID or image name.', ex:'tasklist | findstr chrome\ntaskkill /PID 4821 /F\ntaskkill /IM chrome.exe /F', kw:'kill process stop program end task by name or pid'},
+{s:'cmd', t:'Useful', cmd:'systeminfo', desc:'Full OS, hardware, and patch-level summary.', ex:'systeminfo | findstr /C:"OS Version"', kw:'check windows version hardware specs'},
+{s:'cmd', t:'Useful', cmd:'findstr', desc:'CMD’s built-in grep — search text inside one or many files, supports wildcards and regex with /R. Not for finding files by name/extension — use dir *.ext /s /b for that.', ex:'findstr /S /I "TODO" *.js\nfindstr /R "^Error" log.txt', kw:'search text inside file grep for windows find string in files'},
+{s:'cmd', t:'Useful', cmd:'xcopy / robocopy', desc:'Copy folder trees. robocopy is the modern, more reliable choice (mirroring, retries, logs).', ex:'xcopy C:\\Src D:\\Dst /E /H /C /I\nrobocopy C:\\Src D:\\Dst /MIR /LOG:copy.log', kw:'copy folder recursively backup mirror directory'},
+{s:'cmd', t:'Useful', cmd:'sfc /scannow', desc:'Scan and repair corrupted Windows system files.', ex:'sfc /scannow', kw:'fix windows repair system files'},
+{s:'cmd', t:'Useful', cmd:'chkdsk C: /f /r', desc:'Check a drive for errors and repair/recover bad sectors (needs reboot for C:).', ex:'chkdsk C: /f /r', kw:'disk check repair bad sectors'},
+{s:'cmd', t:'Useful', cmd:'setx', desc:'Permanently set an environment variable (persists across sessions, unlike set).', ex:'setx NODE_ENV "production"', kw:'save environment variable permanently'},
+{s:'cmd', t:'Useful', cmd:'shutdown /r /t 0', desc:'Restart (or /s to shut down) immediately, or after /t seconds.', ex:'shutdown /r /t 60\nshutdown /a  (cancel it)', kw:'restart pc power off cancel shutdown'},
 
-{s:'cmd', t:'Advanced', cmd:'wmic', desc:'Query system info via WMI — processes, installed software, disk, users.', ex:'wmic process list brief\nwmic product get name,version\nwmic diskdrive get model,size'},
-{s:'cmd', t:'Advanced', cmd:'netsh wlan show profile … key=clear', desc:'Reveal a saved Wi-Fi password from a known profile name.', ex:'netsh wlan show profiles\nnetsh wlan show profile name="MyWiFi" key=clear'},
-{s:'cmd', t:'Advanced', cmd:'reg query / add / delete', desc:'Read or edit the Windows Registry from the command line.', ex:'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"'},
-{s:'cmd', t:'Advanced', cmd:'diskpart', desc:'Interactive disk/partition management console (list disk, create partition, format).', ex:'diskpart\n> list disk\n> select disk 1\n> clean'},
-{s:'cmd', t:'Advanced', cmd:'gpupdate /force', desc:'Immediately reapply Group Policy without waiting for the refresh cycle.', ex:'gpupdate /force'},
-{s:'cmd', t:'Advanced', cmd:'for /f loops', desc:'Batch scripting loop — iterate over command output, file lines, or lists.', ex:'for /f "tokens=2" %i in (\'tasklist ^| findstr node\') do echo %i'},
-{s:'cmd', t:'Advanced', cmd:'powercfg /batteryreport', desc:'Generate an HTML battery health/usage report (laptops).', ex:'powercfg /batteryreport /output "C:\\battery.html"'},
-{s:'cmd', t:'Advanced', cmd:'icacls / takeown', desc:'Inspect or repair NTFS permissions; take ownership of a locked file/folder.', ex:'icacls "C:\\locked" /grant Jaswant:F /T\ntakeown /f "C:\\locked" /r'},
-{s:'cmd', t:'Advanced', cmd:'fsutil', desc:'Low-level filesystem utility — check disk stats, create fixed-size dummy files, query NTFS features.', ex:'fsutil fsinfo drives\nfsutil file createnew test.txt 1048576'},
-{s:'cmd', t:'Advanced', cmd:'certutil -hashfile', desc:'Compute a file’s hash (SHA256/MD5) without installing anything extra.', ex:'certutil -hashfile installer.exe SHA256'},
-{s:'cmd', t:'Advanced', cmd:'curl / tar', desc:'Modern Windows 10/11 ships real curl and tar in cmd.exe — no extra install needed.', ex:'curl -O https://example.com/file.zip\ntar -xf file.zip'},
+{s:'cmd', t:'Advanced', cmd:'wmic', desc:'Query system info via WMI — processes, installed software, disk, users.', ex:'wmic process list brief\nwmic product get name,version\nwmic diskdrive get model,size', kw:'list installed software system inventory'},
+{s:'cmd', t:'Advanced', cmd:'netsh wlan show profile … key=clear', desc:'Reveal a saved Wi-Fi password from a known profile name.', ex:'netsh wlan show profiles\nnetsh wlan show profile name="MyWiFi" key=clear', kw:'find wifi password show saved network'},
+{s:'cmd', t:'Advanced', cmd:'reg query / add / delete', desc:'Read or edit the Windows Registry from the command line.', ex:'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"', kw:'registry edit windows startup entries'},
+{s:'cmd', t:'Advanced', cmd:'diskpart', desc:'Interactive disk/partition management console (list disk, create partition, format).', ex:'diskpart\n> list disk\n> select disk 1\n> clean', kw:'partition drive format usb'},
+{s:'cmd', t:'Advanced', cmd:'gpupdate /force', desc:'Immediately reapply Group Policy without waiting for the refresh cycle.', ex:'gpupdate /force', kw:'refresh group policy'},
+{s:'cmd', t:'Advanced', cmd:'for /f loops', desc:'Batch scripting loop — iterate over command output, file lines, or lists.', ex:'for /f "tokens=2" %i in (\'tasklist ^| findstr node\') do echo %i', kw:'batch script loop iterate'},
+{s:'cmd', t:'Advanced', cmd:'forfiles /m *.ext /s', desc:'Find files by extension (or age) and run a command on each match — the batch-scriptable alternative to dir /b when you need to act on results, not just list them.', ex:'forfiles /p "C:\\Logs" /s /m *.crd /c "cmd /c echo @path"\nforfiles /p "C:\\Temp" /s /m *.tmp /d -14 /c "cmd /c del @path"', kw:'find files by extension and delete run command on matches crd log filetype'},
+{s:'cmd', t:'Advanced', cmd:'powercfg /batteryreport', desc:'Generate an HTML battery health/usage report (laptops).', ex:'powercfg /batteryreport /output "C:\\battery.html"', kw:'battery health laptop'},
+{s:'cmd', t:'Advanced', cmd:'icacls / takeown', desc:'Inspect or repair NTFS permissions; take ownership of a locked file/folder.', ex:'icacls "C:\\locked" /grant Jaswant:F /T\ntakeown /f "C:\\locked" /r', kw:'permissions access denied fix ownership'},
+{s:'cmd', t:'Advanced', cmd:'fsutil', desc:'Low-level filesystem utility — check disk stats, create fixed-size dummy files, query NTFS features.', ex:'fsutil fsinfo drives\nfsutil file createnew test.txt 1048576', kw:'disk info create test file'},
+{s:'cmd', t:'Advanced', cmd:'certutil -hashfile', desc:'Compute a file’s hash (SHA256/MD5) without installing anything extra.', ex:'certutil -hashfile installer.exe SHA256', kw:'checksum verify file integrity'},
+{s:'cmd', t:'Advanced', cmd:'curl / tar', desc:'Modern Windows 10/11 ships real curl and tar in cmd.exe — no extra install needed.', ex:'curl -O https://example.com/file.zip\ntar -xf file.zip', kw:'download file extract zip unzip'},
 
 // ===================== POWERSHELL =====================
-{s:'powershell', t:'Basic', cmd:'Get-Help -Full', desc:'Full documentation for any cmdlet, with examples.', ex:'Get-Help Get-Process -Full\nGet-Help Get-Process -Examples'},
-{s:'powershell', t:'Basic', cmd:'Get-Command', desc:'Discover cmdlets — filter by verb, noun, or module.', ex:'Get-Command -Verb Get -Noun *process*'},
-{s:'powershell', t:'Basic', cmd:'Get-Process / Get-Service', desc:'List running processes or Windows services.', ex:'Get-Process | Sort CPU -Descending | select -First 5\nGet-Service | Where Status -eq Running'},
-{s:'powershell', t:'Basic', cmd:'Get-ChildItem', desc:'List directory contents (alias: ls, dir, gci). -Recurse, -Filter, -Hidden.', ex:'Get-ChildItem -Path C:\\Logs -Filter *.log -Recurse'},
-{s:'powershell', t:'Basic', cmd:'Get-Content', desc:'Read a file’s contents. -Tail streams the end (like tail -f).', ex:'Get-Content app.log -Tail 20 -Wait'},
-{s:'powershell', t:'Basic', cmd:'Get-Alias', desc:'See what a shorthand alias actually maps to.', ex:'Get-Alias ls\nGet-Alias | Where {$_.Name -eq "gci"}'},
+{s:'powershell', t:'Basic', cmd:'Get-Help -Full', desc:'Full documentation for any cmdlet, with examples.', ex:'Get-Help Get-Process -Full\nGet-Help Get-Process -Examples', kw:'help manual documentation'},
+{s:'powershell', t:'Basic', cmd:'Get-Command', desc:'Discover cmdlets — filter by verb, noun, or module.', ex:'Get-Command -Verb Get -Noun *process*', kw:'find cmdlet what command does'},
+{s:'powershell', t:'Basic', cmd:'Get-Process / Get-Service', desc:'List running processes or Windows services.', ex:'Get-Process | Sort CPU -Descending | select -First 5\nGet-Service | Where Status -eq Running', kw:'show running programs list services'},
+{s:'powershell', t:'Basic', cmd:'Get-ChildItem -Filter *.ext -Recurse', desc:'Find files by extension across a folder tree (alias: ls, dir, gci). -Recurse searches subfolders, -Filter narrows by name/extension pattern, -Hidden includes hidden files.', ex:'Get-ChildItem -Path C:\\Projects -Filter *.crd -Recurse\nGet-ChildItem -Path C:\\Logs -Filter *.log -Recurse', kw:'find files by extension list directory contents search files filetype crd'},
+{s:'powershell', t:'Basic', cmd:'Get-Content', desc:'Read a file’s contents. -Tail streams the end (like tail -f).', ex:'Get-Content app.log -Tail 20 -Wait', kw:'read file view file cat print file contents watch log'},
+{s:'powershell', t:'Basic', cmd:'Get-Alias', desc:'See what a shorthand alias actually maps to.', ex:'Get-Alias ls\nGet-Alias | Where {$_.Name -eq "gci"}', kw:'what does this alias mean'},
 
-{s:'powershell', t:'Useful', cmd:'Where-Object / Select-Object', desc:'Filter objects by property, then pick which properties to keep.', ex:'Get-Process | Where-Object {$_.CPU -gt 50} | Select Name, CPU, Id'},
-{s:'powershell', t:'Useful', cmd:'Sort-Object / Group-Object', desc:'Sort a collection, or bucket it into groups by a property.', ex:'Get-Process | Sort WS -Descending\nGet-ChildItem | Group-Object Extension'},
-{s:'powershell', t:'Useful', cmd:'ForEach-Object', desc:'Run a block of code for every object piped in (alias: %).', ex:'1..5 | ForEach-Object { "Item $_" }'},
-{s:'powershell', t:'Useful', cmd:'Get-Member', desc:'List every property and method an object exposes — how you discover what’s pipeable.', ex:'Get-Process | Get-Member'},
-{s:'powershell', t:'Useful', cmd:'Test-Path / Test-NetConnection', desc:'Check if a file/path exists, or if a host+port is reachable.', ex:'Test-Path C:\\Backup\nTest-NetConnection google.com -Port 443'},
-{s:'powershell', t:'Useful', cmd:'Start-Process / Stop-Process', desc:'Launch or forcibly end a process, optionally elevated.', ex:'Start-Process notepad -Verb RunAs\nStop-Process -Name chrome -Force'},
-{s:'powershell', t:'Useful', cmd:'Copy-Item / Remove-Item -Recurse', desc:'Copy or delete files and folders, recursively with -Recurse.', ex:'Copy-Item .\\src -Destination .\\backup -Recurse\nRemove-Item .\\temp -Recurse -Force'},
-{s:'powershell', t:'Useful', cmd:'Invoke-WebRequest / Invoke-RestMethod', desc:'Fetch a URL or call a REST API directly from the shell.', ex:'Invoke-RestMethod -Uri "https://api.example.com/data" -Method Get'},
-{s:'powershell', t:'Useful', cmd:'ConvertTo-Json / Export-Csv', desc:'Turn any object collection into JSON or a CSV file.', ex:'Get-Process | Select Name,Id | ConvertTo-Json\nGet-Process | Export-Csv procs.csv -NoTypeInformation'},
-{s:'powershell', t:'Useful', cmd:'Get-NetIPConfiguration', desc:'Modern replacement for ipconfig — structured, filterable network info.', ex:'Get-NetIPConfiguration | Format-List'},
+{s:'powershell', t:'Useful', cmd:'Where-Object / Select-Object', desc:'Filter objects by property, then pick which properties to keep.', ex:'Get-Process | Where-Object {$_.CPU -gt 50} | Select Name, CPU, Id', kw:'filter list pick columns'},
+{s:'powershell', t:'Useful', cmd:'Sort-Object / Group-Object', desc:'Sort a collection, or bucket it into groups by a property — e.g. group every file in a folder by its extension.', ex:'Get-Process | Sort WS -Descending\nGet-ChildItem | Group-Object Extension', kw:'sort by size group files by extension count file types'},
+{s:'powershell', t:'Useful', cmd:'ForEach-Object', desc:'Run a block of code for every object piped in (alias: %).', ex:'1..5 | ForEach-Object { "Item $_" }', kw:'loop iterate for each'},
+{s:'powershell', t:'Useful', cmd:'Get-Member', desc:'List every property and method an object exposes — how you discover what’s pipeable.', ex:'Get-Process | Get-Member', kw:'inspect object properties'},
+{s:'powershell', t:'Useful', cmd:'Test-Path / Test-NetConnection', desc:'Check if a file/path exists, or if a host+port is reachable.', ex:'Test-Path C:\\Backup\nTest-NetConnection google.com -Port 443', kw:'does file exist check port open'},
+{s:'powershell', t:'Useful', cmd:'Start-Process / Stop-Process', desc:'Launch or forcibly end a process, optionally elevated.', ex:'Start-Process notepad -Verb RunAs\nStop-Process -Name chrome -Force', kw:'run as administrator kill process by name'},
+{s:'powershell', t:'Useful', cmd:'Copy-Item / Remove-Item -Recurse', desc:'Copy or delete files and folders, recursively with -Recurse.', ex:'Copy-Item .\\src -Destination .\\backup -Recurse\nRemove-Item .\\temp -Recurse -Force', kw:'copy folder delete folder backup'},
+{s:'powershell', t:'Useful', cmd:'Invoke-WebRequest / Invoke-RestMethod', desc:'Fetch a URL or call a REST API directly from the shell.', ex:'Invoke-RestMethod -Uri "https://api.example.com/data" -Method Get', kw:'download file api call http request'},
+{s:'powershell', t:'Useful', cmd:'ConvertTo-Json / Export-Csv', desc:'Turn any object collection into JSON or a CSV file.', ex:'Get-Process | Select Name,Id | ConvertTo-Json\nGet-Process | Export-Csv procs.csv -NoTypeInformation', kw:'export data save as csv json'},
+{s:'powershell', t:'Useful', cmd:'Get-NetIPConfiguration', desc:'Modern replacement for ipconfig — structured, filterable network info.', ex:'Get-NetIPConfiguration | Format-List', kw:'show ip address network info'},
 
-{s:'powershell', t:'Advanced', cmd:'$PROFILE', desc:'Path to your personal startup script — put aliases/functions here so they load every session.', ex:'notepad $PROFILE\nif (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }'},
-{s:'powershell', t:'Advanced', cmd:'Set-ExecutionPolicy', desc:'Control whether local/remote .ps1 scripts are allowed to run.', ex:'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser'},
-{s:'powershell', t:'Advanced', cmd:'Invoke-Command / Enter-PSSession', desc:'Run commands on a remote machine, or open an interactive remote session (PS Remoting).', ex:'Invoke-Command -ComputerName Srv01 -ScriptBlock { Get-Service }\nEnter-PSSession -ComputerName Srv01'},
-{s:'powershell', t:'Advanced', cmd:'Get-CimInstance', desc:'Modern replacement for Get-WmiObject — query hardware/OS/BIOS data.', ex:'Get-CimInstance Win32_OperatingSystem | Select Caption, Version\nGet-CimInstance Win32_LogicalDisk'},
-{s:'powershell', t:'Advanced', cmd:'Start-Job / Get-Job / Receive-Job', desc:'Run a script block as a background job and collect its output later.', ex:'$j = Start-Job { Get-Process }\nReceive-Job $j -Keep'},
-{s:'powershell', t:'Advanced', cmd:'Install-Module / Import-Module', desc:'Install a PowerShell Gallery module and load it into the session.', ex:'Install-Module -Name Posh-Git -Scope CurrentUser\nImport-Module Posh-Git'},
-{s:'powershell', t:'Advanced', cmd:'-match / -replace (regex)', desc:'Regex matching and substitution operators built into the language.', ex:'"jaswant@lde.com" -match "^\\w+"\n"hello world" -replace "world","there"'},
-{s:'powershell', t:'Advanced', cmd:'try / catch / finally', desc:'Structured error handling around risky commands.', ex:'try {\n  Get-Content missing.txt -ErrorAction Stop\n} catch {\n  Write-Host "Failed: $_"\n}'},
-{s:'powershell', t:'Advanced', cmd:'function with params', desc:'Define a reusable script function with typed, named parameters.', ex:'function Get-Big($Path, [int]$MinMB = 100) {\n  Get-ChildItem $Path -Recurse |\n    Where Length -gt ($MinMB*1MB)\n}'},
-{s:'powershell', t:'Advanced', cmd:'Compress-Archive / Expand-Archive', desc:'Zip or unzip folders natively, no external tool needed.', ex:'Compress-Archive -Path .\\logs -DestinationPath logs.zip\nExpand-Archive logs.zip -DestinationPath .\\logs'},
-{s:'powershell', t:'Advanced', cmd:'Register-ScheduledTask', desc:'Create a Windows scheduled task entirely from PowerShell.', ex:'$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File C:\\job.ps1"\n$trigger = New-ScheduledTaskTrigger -Daily -At 9am\nRegister-ScheduledTask -Action $action -Trigger $trigger -TaskName "DailyJob"'},
+{s:'powershell', t:'Advanced', cmd:'$PROFILE', desc:'Path to your personal startup script — put aliases/functions here so they load every session.', ex:'notepad $PROFILE\nif (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }', kw:'startup script custom aliases'},
+{s:'powershell', t:'Advanced', cmd:'Set-ExecutionPolicy', desc:'Control whether local/remote .ps1 scripts are allowed to run.', ex:'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser', kw:'script blocked cannot be loaded fix execution policy'},
+{s:'powershell', t:'Advanced', cmd:'Invoke-Command / Enter-PSSession', desc:'Run commands on a remote machine, or open an interactive remote session (PS Remoting).', ex:'Invoke-Command -ComputerName Srv01 -ScriptBlock { Get-Service }\nEnter-PSSession -ComputerName Srv01', kw:'remote server ssh equivalent'},
+{s:'powershell', t:'Advanced', cmd:'Get-CimInstance', desc:'Modern replacement for Get-WmiObject — query hardware/OS/BIOS data.', ex:'Get-CimInstance Win32_OperatingSystem | Select Caption, Version\nGet-CimInstance Win32_LogicalDisk', kw:'hardware info bios disk drives'},
+{s:'powershell', t:'Advanced', cmd:'Start-Job / Get-Job / Receive-Job', desc:'Run a script block as a background job and collect its output later.', ex:'$j = Start-Job { Get-Process }\nReceive-Job $j -Keep', kw:'background task async'},
+{s:'powershell', t:'Advanced', cmd:'Install-Module / Import-Module', desc:'Install a PowerShell Gallery module and load it into the session.', ex:'Install-Module -Name Posh-Git -Scope CurrentUser\nImport-Module Posh-Git', kw:'install package add module'},
+{s:'powershell', t:'Advanced', cmd:'-match / -replace (regex)', desc:'Regex matching and substitution operators built into the language.', ex:'"jaswant@lde.com" -match "^\\w+"\n"hello world" -replace "world","there"', kw:'regex find replace pattern text'},
+{s:'powershell', t:'Advanced', cmd:'try / catch / finally', desc:'Structured error handling around risky commands.', ex:'try {\n  Get-Content missing.txt -ErrorAction Stop\n} catch {\n  Write-Host "Failed: $_"\n}', kw:'error handling exceptions'},
+{s:'powershell', t:'Advanced', cmd:'function with params', desc:'Define a reusable script function with typed, named parameters.', ex:'function Get-Big($Path, [int]$MinMB = 100) {\n  Get-ChildItem $Path -Recurse |\n    Where Length -gt ($MinMB*1MB)\n}', kw:'custom function find large files by size'},
+{s:'powershell', t:'Advanced', cmd:'Compress-Archive / Expand-Archive', desc:'Zip or unzip folders natively, no external tool needed.', ex:'Compress-Archive -Path .\\logs -DestinationPath logs.zip\nExpand-Archive logs.zip -DestinationPath .\\logs', kw:'zip unzip archive extract'},
+{s:'powershell', t:'Advanced', cmd:'Register-ScheduledTask', desc:'Create a Windows scheduled task entirely from PowerShell.', ex:'$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File C:\\job.ps1"\n$trigger = New-ScheduledTaskTrigger -Daily -At 9am\nRegister-ScheduledTask -Action $action -Trigger $trigger -TaskName "DailyJob"', kw:'task scheduler automate script daily'},
 
 // ===================== WSL =====================
-{s:'wsl', t:'Basic', cmd:'wsl', desc:'Launch your default WSL distro’s shell.', ex:'wsl'},
-{s:'wsl', t:'Basic', cmd:'wsl --list --verbose', desc:'Show installed distros, their state, and WSL version (1 or 2). Alias: wsl -l -v', ex:'wsl -l -v'},
-{s:'wsl', t:'Basic', cmd:'wsl --install -d <Distro>', desc:'Install WSL (first run) or add a specific distro, e.g. Ubuntu.', ex:'wsl --install\nwsl --install -d Ubuntu-22.04'},
-{s:'wsl', t:'Basic', cmd:'wsl -d <Distro>', desc:'Open a shell in a specific distro (if you have more than one).', ex:'wsl -d Ubuntu-22.04'},
-{s:'wsl', t:'Basic', cmd:'wsl --set-default <Distro>', desc:'Change which distro launches when you just type wsl.', ex:'wsl --set-default Ubuntu-22.04'},
-{s:'wsl', t:'Basic', cmd:'wsl --shutdown', desc:'Force-stop the entire WSL VM (all distros) — fixes most “WSL acting weird” issues.', ex:'wsl --shutdown'},
-{s:'wsl', t:'Basic', cmd:'wsl --terminate <Distro>', desc:'Stop a single distro without shutting down the whole WSL VM.', ex:'wsl --terminate Ubuntu-22.04'},
+{s:'wsl', t:'Basic', cmd:'wsl', desc:'Launch your default WSL distro’s shell.', ex:'wsl', kw:'open linux terminal'},
+{s:'wsl', t:'Basic', cmd:'wsl --list --verbose', desc:'Show installed distros, their state, and WSL version (1 or 2). Alias: wsl -l -v', ex:'wsl -l -v', kw:'list distros installed which version'},
+{s:'wsl', t:'Basic', cmd:'wsl --install -d <Distro>', desc:'Install WSL (first run) or add a specific distro, e.g. Ubuntu.', ex:'wsl --install\nwsl --install -d Ubuntu-22.04', kw:'install linux ubuntu setup'},
+{s:'wsl', t:'Basic', cmd:'wsl -d <Distro>', desc:'Open a shell in a specific distro (if you have more than one).', ex:'wsl -d Ubuntu-22.04', kw:'switch distro'},
+{s:'wsl', t:'Basic', cmd:'wsl --set-default <Distro>', desc:'Change which distro launches when you just type wsl.', ex:'wsl --set-default Ubuntu-22.04', kw:'default distro'},
+{s:'wsl', t:'Basic', cmd:'wsl --shutdown', desc:'Force-stop the entire WSL VM (all distros) — fixes most “WSL acting weird” issues.', ex:'wsl --shutdown', kw:'restart wsl fix stuck frozen'},
+{s:'wsl', t:'Basic', cmd:'wsl --terminate <Distro>', desc:'Stop a single distro without shutting down the whole WSL VM.', ex:'wsl --terminate Ubuntu-22.04', kw:'stop one distro'},
 
-{s:'wsl', t:'Advanced', cmd:'wsl --export / --import', desc:'Back up a distro to a .tar file, or restore/clone it elsewhere.', ex:'wsl --export Ubuntu-22.04 D:\\backup\\ubuntu.tar\nwsl --import UbuntuClone D:\\wsl\\clone D:\\backup\\ubuntu.tar'},
-{s:'wsl', t:'Advanced', cmd:'wsl --set-version <Distro> 2', desc:'Convert a distro between WSL 1 and WSL 2 architectures.', ex:'wsl --set-version Ubuntu-22.04 2'},
-{s:'wsl', t:'Advanced', cmd:'.wslconfig (global)', desc:'Global WSL2 VM limits — memory, CPU, swap. Lives at %UserProfile%\\.wslconfig on Windows.', ex:'[wsl2]\nmemory=6GB\nprocessors=4\nswap=2GB'},
-{s:'wsl', t:'Advanced', cmd:'wsl.conf (per-distro)', desc:'Per-distro config inside Linux at /etc/wsl.conf — auto-mount options, default user, systemd.', ex:'[boot]\nsystemd=true\n\n[user]\ndefault=jaswant'},
-{s:'wsl', t:'Advanced', cmd:'Access Windows files from Linux', desc:'Your Windows drives are mounted under /mnt inside WSL.', ex:'cd /mnt/c/Users/Jaswant/Documents'},
-{s:'wsl', t:'Advanced', cmd:'Access Linux files from Windows', desc:'Browse your distro’s filesystem from Windows Explorer or any Windows app.', ex:'\\\\wsl$\\Ubuntu-22.04\\home\\jaswant'},
-{s:'wsl', t:'Advanced', cmd:'wsl --update', desc:'Update the WSL kernel/engine itself, independent of Windows Update.', ex:'wsl --update'},
-{s:'wsl', t:'Advanced', cmd:'wsl --list --online', desc:'See every distro available to install (Ubuntu, Debian, Kali, etc).', ex:'wsl --list --online'},
+{s:'wsl', t:'Advanced', cmd:'wsl --export / --import', desc:'Back up a distro to a .tar file, or restore/clone it elsewhere.', ex:'wsl --export Ubuntu-22.04 D:\\backup\\ubuntu.tar\nwsl --import UbuntuClone D:\\wsl\\clone D:\\backup\\ubuntu.tar', kw:'backup clone distro'},
+{s:'wsl', t:'Advanced', cmd:'wsl --set-version <Distro> 2', desc:'Convert a distro between WSL 1 and WSL 2 architectures.', ex:'wsl --set-version Ubuntu-22.04 2', kw:'upgrade wsl version'},
+{s:'wsl', t:'Advanced', cmd:'.wslconfig (global)', desc:'Global WSL2 VM limits — memory, CPU, swap. Lives at %UserProfile%\\.wslconfig on Windows.', ex:'[wsl2]\nmemory=6GB\nprocessors=4\nswap=2GB', kw:'limit ram memory usage'},
+{s:'wsl', t:'Advanced', cmd:'wsl.conf (per-distro)', desc:'Per-distro config inside Linux at /etc/wsl.conf — auto-mount options, default user, systemd.', ex:'[boot]\nsystemd=true\n\n[user]\ndefault=jaswant', kw:'enable systemd default user'},
+{s:'wsl', t:'Advanced', cmd:'Access Windows files from Linux', desc:'Your Windows drives are mounted under /mnt inside WSL.', ex:'cd /mnt/c/Users/Jaswant/Documents', kw:'find windows c drive from wsl'},
+{s:'wsl', t:'Advanced', cmd:'Access Linux files from Windows', desc:'Browse your distro’s filesystem from Windows Explorer or any Windows app.', ex:'\\\\wsl$\\Ubuntu-22.04\\home\\jaswant', kw:'open linux folder in explorer'},
+{s:'wsl', t:'Advanced', cmd:'wsl --update', desc:'Update the WSL kernel/engine itself, independent of Windows Update.', ex:'wsl --update', kw:'update wsl kernel'},
+{s:'wsl', t:'Advanced', cmd:'wsl --list --online', desc:'See every distro available to install (Ubuntu, Debian, Kali, etc).', ex:'wsl --list --online', kw:'available distros'},
 
 // ===================== UNIX / GREP / SED / AWK =====================
-{s:'unix', t:'grep', cmd:'grep -i "pattern" file', desc:'Case-insensitive search for a string inside a file.', ex:'grep -i "error" server.log'},
-{s:'unix', t:'grep', cmd:'grep -r "pattern" .', desc:'Recursively search every file under the current directory.', ex:'grep -r "TODO" ./src'},
-{s:'unix', t:'grep', cmd:'grep -n / -v / -c', desc:'-n shows line numbers, -v inverts the match, -c just counts matches.', ex:'grep -n "warn" app.log\ngrep -v "DEBUG" app.log\ngrep -c "200" access.log'},
-{s:'unix', t:'grep', cmd:'grep -E "pat1|pat2"', desc:'Extended regex — alternation, groups, quantifiers without escaping.', ex:'grep -E "error|fail|timeout" app.log'},
-{s:'unix', t:'grep', cmd:'grep -A3 -B1 -w "word"', desc:'-w matches whole words only; -A/-B/-C print lines of context after/before/around a hit.', ex:'grep -A3 -B1 -w "Exception" app.log'},
-{s:'unix', t:'grep', cmd:'ps aux | grep node', desc:'Classic combo — filter a command’s output through grep.', ex:'ps aux | grep node | grep -v grep'},
+{s:'unix', t:'grep', cmd:'grep -i "pattern" file', desc:'Case-insensitive search for a string inside a file (not for finding files themselves — that’s find, below).', ex:'grep -i "error" server.log', kw:'search text inside file case insensitive'},
+{s:'unix', t:'grep', cmd:'grep -r "pattern" .', desc:'Recursively search every file under the current directory for a string.', ex:'grep -r "TODO" ./src', kw:'search all files recursively for text'},
+{s:'unix', t:'grep', cmd:'grep -n / -v / -c', desc:'-n shows line numbers, -v inverts the match, -c just counts matches.', ex:'grep -n "warn" app.log\ngrep -v "DEBUG" app.log\ngrep -c "200" access.log', kw:'count matches exclude lines line numbers'},
+{s:'unix', t:'grep', cmd:'grep -E "pat1|pat2"', desc:'Extended regex — alternation, groups, quantifiers without escaping.', ex:'grep -E "error|fail|timeout" app.log', kw:'regex multiple patterns or'},
+{s:'unix', t:'grep', cmd:'grep -A3 -B1 -w "word"', desc:'-w matches whole words only; -A/-B/-C print lines of context after/before/around a hit.', ex:'grep -A3 -B1 -w "Exception" app.log', kw:'context around match whole word'},
+{s:'unix', t:'grep', cmd:'ps aux | grep node', desc:'Classic combo — filter a command’s output through grep.', ex:'ps aux | grep node | grep -v grep', kw:'filter process list'},
 
-{s:'unix', t:'sed', cmd:'sed \'s/old/new/\' file', desc:'Replace the first match per line; add g at the end to replace all matches on the line.', ex:'sed \'s/foo/bar/g\' config.txt'},
-{s:'unix', t:'sed', cmd:'sed -i \'s/old/new/g\' file', desc:'Edit the file in place instead of just printing the result.', ex:'sed -i \'s/localhost/127.0.0.1/g\' .env'},
-{s:'unix', t:'sed', cmd:'sed -n \'2,4p\' file', desc:'Print only a specific line or range of lines (like head/tail combined).', ex:'sed -n \'2,4p\' file.txt'},
-{s:'unix', t:'sed', cmd:'sed \'/pattern/d\' file', desc:'Delete every line matching a pattern.', ex:'sed \'/^#/d\' config.txt   # strip comment lines'},
+{s:'unix', t:'sed', cmd:'sed \'s/old/new/\' file', desc:'Replace the first match per line; add g at the end to replace all matches on the line.', ex:'sed \'s/foo/bar/g\' config.txt', kw:'find and replace text substitute'},
+{s:'unix', t:'sed', cmd:'sed -i \'s/old/new/g\' file', desc:'Edit the file in place instead of just printing the result.', ex:'sed -i \'s/localhost/127.0.0.1/g\' .env', kw:'replace text and save edit file directly'},
+{s:'unix', t:'sed', cmd:'sed -n \'2,4p\' file', desc:'Print only a specific line or range of lines (like head/tail combined).', ex:'sed -n \'2,4p\' file.txt', kw:'print line range'},
+{s:'unix', t:'sed', cmd:'sed \'/pattern/d\' file', desc:'Delete every line matching a pattern.', ex:'sed \'/^#/d\' config.txt   # strip comment lines', kw:'delete matching lines remove comments'},
 
-{s:'unix', t:'awk', cmd:'awk \'{print $1}\' file', desc:'Print a column — $1 is the first whitespace-separated field, $0 is the whole line.', ex:'awk \'{print $1, $3}\' access.log'},
-{s:'unix', t:'awk', cmd:'awk -F"," \'{print $2}\' file', desc:'Use -F to set a custom field separator, e.g. for CSVs.', ex:'awk -F"," \'{print $2}\' contacts.csv'},
-{s:'unix', t:'awk', cmd:'awk \'/pattern/ {print}\'', desc:'Only act on lines matching a pattern — awk’s own built-in grep.', ex:'awk \'/ERROR/ {print $0}\' app.log'},
-{s:'unix', t:'awk', cmd:'awk \'{sum+=$2} END{print sum}\'', desc:'Aggregate a column across all lines — sums, counts, averages.', ex:'awk -F"," \'{sum+=$3} END{print "Total:", sum}\' sales.csv'},
+{s:'unix', t:'awk', cmd:'awk \'{print $1}\' file', desc:'Print a column — $1 is the first whitespace-separated field, $0 is the whole line.', ex:'awk \'{print $1, $3}\' access.log', kw:'print column field'},
+{s:'unix', t:'awk', cmd:'awk -F"," \'{print $2}\' file', desc:'Use -F to set a custom field separator, e.g. for CSVs.', ex:'awk -F"," \'{print $2}\' contacts.csv', kw:'parse csv column custom delimiter'},
+{s:'unix', t:'awk', cmd:'awk \'/pattern/ {print}\'', desc:'Only act on lines matching a pattern — awk’s own built-in grep.', ex:'awk \'/ERROR/ {print $0}\' app.log', kw:'filter lines by pattern'},
+{s:'unix', t:'awk', cmd:'awk \'{sum+=$2} END{print sum}\'', desc:'Aggregate a column across all lines — sums, counts, averages.', ex:'awk -F"," \'{sum+=$3} END{print "Total:", sum}\' sales.csv', kw:'sum column total average csv'},
 
-{s:'unix', t:'find & files', cmd:'find . -name "*.log"', desc:'Find files by name pattern, recursively from the current directory.', ex:'find . -name "*.log"'},
-{s:'unix', t:'find & files', cmd:'find . -mtime -7 / -size +100M', desc:'Filter by modified time (days) or size — great for cleanup jobs.', ex:'find . -type f -mtime -7\nfind . -type f -size +100M'},
-{s:'unix', t:'find & files', cmd:'find . -name "*.tmp" -exec rm {} \\;', desc:'Run a command on every match found. {} is replaced with each filename.', ex:'find . -name "*.tmp" -exec rm {} \\;'},
-{s:'unix', t:'find & files', cmd:'... | xargs', desc:'Feed piped-in lines as arguments to another command, in batches.', ex:'find . -name "*.log" | xargs grep -l "FATAL"'},
-{s:'unix', t:'find & files', cmd:'du -sh */ / df -h', desc:'du shows folder sizes (sorted-by-hand or piped to sort); df shows disk space free.', ex:'du -sh ./* | sort -h\ndf -h'},
-{s:'unix', t:'find & files', cmd:'chmod / chown', desc:'Change file permissions (e.g. +x to make executable) or ownership.', ex:'chmod +x deploy.sh\nchmod 755 script.sh\nchown jaswant:jaswant file.txt'},
-{s:'unix', t:'find & files', cmd:'tar -czvf / -xzvf', desc:'Create (c) or extract (x) a gzip-compressed tarball, verbosely.', ex:'tar -czvf backup.tar.gz ./project\ntar -xzvf backup.tar.gz'},
-{s:'unix', t:'find & files', cmd:'ln -s target link', desc:'Create a symbolic link — a shortcut that points to another file/folder.', ex:'ln -s /mnt/c/Projects ~/projects'},
+{s:'unix', t:'find & files', cmd:'find . -name "*.ext"', desc:'Find files by extension (or any name pattern), recursively from the current directory — the go-to for “where are all my .crd / .log / .csv files”.', ex:'find . -name "*.crd"\nfind . -type f -name "*.log"', kw:'find files by extension search filetype crd log csv locate files'},
+{s:'unix', t:'find & files', cmd:'find . -mtime -7 / -size +100M', desc:'Filter by modified time (days) or size — great for cleanup jobs.', ex:'find . -type f -mtime -7\nfind . -type f -size +100M', kw:'find recently modified files find large files'},
+{s:'unix', t:'find & files', cmd:'find . -name "*.tmp" -exec rm {} \\;', desc:'Run a command on every match found. {} is replaced with each filename — e.g. delete every file with a given extension.', ex:'find . -name "*.tmp" -exec rm {} \\;\nfind . -name "*.crd" -exec cp {} ~/backup/ \\;', kw:'delete files by extension run command on each match'},
+{s:'unix', t:'find & files', cmd:'... | xargs', desc:'Feed piped-in lines as arguments to another command, in batches.', ex:'find . -name "*.log" | xargs grep -l "FATAL"', kw:'pipe results into another command'},
+{s:'unix', t:'find & files', cmd:'du -sh */ / df -h', desc:'du shows folder sizes (sorted-by-hand or piped to sort); df shows disk space free.', ex:'du -sh ./* | sort -h\ndf -h', kw:'check disk space folder size free space'},
+{s:'unix', t:'find & files', cmd:'chmod / chown', desc:'Change file permissions (e.g. +x to make executable) or ownership.', ex:'chmod +x deploy.sh\nchmod 755 script.sh\nchown jaswant:jaswant file.txt', kw:'make executable permission denied fix ownership'},
+{s:'unix', t:'find & files', cmd:'tar -czvf / -xzvf', desc:'Create (c) or extract (x) a gzip-compressed tarball, verbosely.', ex:'tar -czvf backup.tar.gz ./project\ntar -xzvf backup.tar.gz', kw:'zip unzip compress extract archive'},
+{s:'unix', t:'find & files', cmd:'ln -s target link', desc:'Create a symbolic link — a shortcut that points to another file/folder.', ex:'ln -s /mnt/c/Projects ~/projects', kw:'symlink shortcut'},
 
-{s:'unix', t:'process & network', cmd:'ps aux / top', desc:'List all running processes with full detail, or watch them live with top.', ex:'ps aux --sort=-%cpu | head\ntop'},
-{s:'unix', t:'process & network', cmd:'kill -9 <PID>', desc:'Force-terminate a process by its ID (SIGKILL — last resort).', ex:'kill -9 4821'},
-{s:'unix', t:'process & network', cmd:'lsof -i :PORT', desc:'Find which process is holding a given port open.', ex:'lsof -i :3000'},
-{s:'unix', t:'process & network', cmd:'ss -tulwn', desc:'Modern replacement for netstat — list listening TCP/UDP ports.', ex:'ss -tulwn'},
-{s:'unix', t:'process & network', cmd:'curl -O / -I', desc:'Download a file (-O), or fetch just the response headers (-I) to check a URL.', ex:'curl -O https://example.com/file.zip\ncurl -I https://ldemotors.com'},
-{s:'unix', t:'process & network', cmd:'ssh / scp', desc:'Open a remote shell, or securely copy files to/from a remote host.', ex:'ssh user@server.com\nscp report.csv user@server.com:/home/user/'},
+{s:'unix', t:'process & network', cmd:'ps aux / top', desc:'List all running processes with full detail, or watch them live with top.', ex:'ps aux --sort=-%cpu | head\ntop', kw:'list running processes'},
+{s:'unix', t:'process & network', cmd:'kill -9 <PID>', desc:'Force-terminate a process by its ID (SIGKILL — last resort).', ex:'kill -9 4821', kw:'kill process force stop'},
+{s:'unix', t:'process & network', cmd:'lsof -i :PORT', desc:'Find which process is holding a given port open.', ex:'lsof -i :3000', kw:'what is using this port'},
+{s:'unix', t:'process & network', cmd:'ss -tulwn', desc:'Modern replacement for netstat — list listening TCP/UDP ports.', ex:'ss -tulwn', kw:'list open ports'},
+{s:'unix', t:'process & network', cmd:'curl -O / -I', desc:'Download a file (-O), or fetch just the response headers (-I) to check a URL.', ex:'curl -O https://example.com/file.zip\ncurl -I https://ldemotors.com', kw:'download file check headers'},
+{s:'unix', t:'process & network', cmd:'ssh / scp', desc:'Open a remote shell, or securely copy files to/from a remote host.', ex:'ssh user@server.com\nscp report.csv user@server.com:/home/user/', kw:'remote login copy file to server'},
 
-{s:'unix', t:'shell habits', cmd:'history | grep', desc:'Search your shell command history instead of scrolling back.', ex:'history | grep docker'},
-{s:'unix', t:'shell habits', cmd:'alias name="command"', desc:'Create a shortcut for a longer command; put it in ~/.bashrc to keep it permanently.', ex:'alias ll="ls -la"\nalias gs="git status"'},
-{s:'unix', t:'shell habits', cmd:'crontab -e', desc:'Edit your scheduled recurring jobs (cron) — the Linux equivalent of Task Scheduler.', ex:'0 2 * * * /home/jaswant/backup.sh   # runs daily at 2am'},
+{s:'unix', t:'shell habits', cmd:'history | grep', desc:'Search your shell command history instead of scrolling back.', ex:'history | grep docker', kw:'search past commands'},
+{s:'unix', t:'shell habits', cmd:'alias name="command"', desc:'Create a shortcut for a longer command; put it in ~/.bashrc to keep it permanently.', ex:'alias ll="ls -la"\nalias gs="git status"', kw:'shortcut for command'},
+{s:'unix', t:'shell habits', cmd:'crontab -e', desc:'Edit your scheduled recurring jobs (cron) — the Linux equivalent of Task Scheduler.', ex:'0 2 * * * /home/jaswant/backup.sh   # runs daily at 2am', kw:'schedule recurring job automate'},
 
 // ===================== INSTALL & SETUP =====================
 {s:'setup', t:'Bootstrap — do this first', cmd:'winget --version', desc:'Check if winget already exists before doing anything else. Present on most Windows 11 and updated Windows 10 machines.', ex:'winget --version'},
 {s:'setup', t:'Bootstrap — do this first', cmd:'Install App Installer (Store)', desc:'If winget is missing, this is the one browser step that unlocks it — installing "App Installer" brings winget with it. After this, everything else is command-line only.', ex:'ms-windows-store://pdp/?productid=9NBLGGH4NNS1\n(or search "App Installer" in Microsoft Store)'},
 {s:'setup', t:'Bootstrap — do this first', cmd:'Install Chocolatey', desc:'The no-browser fallback — works even when winget and the Store aren’t available (Server editions, locked-down or Core images). Needs only PowerShell + internet.', ex:'Set-ExecutionPolicy Bypass -Scope Process -Force;\n[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;\niex ((New-Object System.Net.WebClient).DownloadString(\'https://community.chocolatey.org/install.ps1\'))'},
 
-{s:'setup', t:'Package managers', cmd:'winget search / install', desc:'Windows’ built-in package manager (Win10 21H2+/Win11) — no separate install needed once present.', ex:'winget search python\nwinget install --id Python.Python.3.12'},
+{s:'setup', t:'Package managers', cmd:'winget search / install', desc:'Windows’ built-in package manager (Win10 21H2+/Win11) — no separate install needed once present.', ex:'winget search python\nwinget install --id Python.Python.3.12', kw:'install software windows package manager'},
 {s:'setup', t:'Package managers', cmd:'winget upgrade --all', desc:'Update every app winget knows about in one shot.', ex:'winget upgrade --all'},
 {s:'setup', t:'Package managers', cmd:'winget list / uninstall', desc:'See everything winget-managed installed on this machine, or remove one.', ex:'winget list\nwinget uninstall --id Python.Python.3.12'},
 {s:'setup', t:'Package managers', cmd:'choco install / upgrade', desc:'Once Chocolatey is installed, this is its everyday install/update syntax.', ex:'choco install git python nodejs -y\nchoco upgrade all -y'},
@@ -477,6 +530,206 @@ const DATA = [
 {s:'setup', t:'Virtual environments', cmd:'Enable WSL (feature flag)', desc:'Manually enable the WSL + Virtual Machine Platform Windows features (what wsl --install does under the hood).', ex:'dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart\ndism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart'},
 ];
 
+// ---------- command generator ----------
+// Each task defines, per shell, the input fields it needs and a build(values) function
+// that returns the finished command string. 'd' on a param is its default value.
+const GENERATORS = [
+  { id:'find-ext', label:'Find files by extension', cat:'Files', shells:{
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`dir "${v.path}\\*.${v.ext}" /s /b` },
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse` },
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`find ${v.path} -type f -name "*.${v.ext}"` },
+  }},
+  { id:'find-name', label:'Find files by name (partial match)', cat:'Files', shells:{
+    cmd:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`dir "${v.path}\\*${v.name}*" /s /b` },
+    powershell:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *${v.name}* -Recurse` },
+    unix:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`find ${v.path} -iname "*${v.name}*"` },
+  }},
+  { id:'find-recent', label:'Find files modified in the last N days', cat:'Files', shells:{
+    powershell:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-${v.days}) }` },
+    unix:{ params:[{k:'days',l:'Within last N days',ph:'7',d:'7'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`find ${v.path} -type f -mtime -${v.days}` },
+  }},
+  { id:'find-large', label:'Find files larger than N MB', cat:'Files', shells:{
+    powershell:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse | Where-Object { $_.Length -gt ${v.size}MB }` },
+    unix:{ params:[{k:'size',l:'Size threshold (MB)',ph:'100',d:'100'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`find ${v.path} -type f -size +${v.size}M` },
+  }},
+  { id:'delete-ext', label:'Delete all files with an extension', cat:'Files', shells:{
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'}],
+      build:v=>`del /s "${v.path}\\*.${v.ext}"` },
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`find ${v.path} -name "*.${v.ext}" -delete` },
+  }},
+  { id:'search-text', label:'Search for text inside files', cat:'Search', shells:{
+    cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`findstr /S /I /C:"${v.text}" "${v.path}\\*.*"` },
+    powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse -File | Select-String -Pattern "${v.text}"` },
+    unix:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'.',d:'.'}],
+      build:v=>`grep -rin "${v.text}" ${v.path}` },
+  }},
+  { id:'kill-process', label:'Kill a process by name', cat:'Processes', shells:{
+    cmd:{ params:[{k:'name',l:'Process / image name',ph:'chrome.exe',d:'chrome.exe'}],
+      build:v=>`taskkill /IM ${v.name} /F` },
+    powershell:{ params:[{k:'name',l:'Process name (no .exe)',ph:'chrome',d:'chrome'}],
+      build:v=>`Stop-Process -Name "${v.name}" -Force` },
+    unix:{ params:[{k:'name',l:'Process name',ph:'node',d:'node'}],
+      build:v=>`pkill -9 ${v.name}` },
+  }},
+  { id:'port-owner', label:'Find what\u2019s using a port', cat:'Network', shells:{
+    cmd:{ params:[{k:'port',l:'Port number',ph:'3000',d:'3000'}],
+      build:v=>`netstat -ano | findstr :${v.port}` },
+    powershell:{ params:[{k:'port',l:'Port number',ph:'3000',d:'3000'}],
+      build:v=>`Get-NetTCPConnection -LocalPort ${v.port} | Select-Object LocalPort,OwningProcess` },
+    unix:{ params:[{k:'port',l:'Port number',ph:'3000',d:'3000'}],
+      build:v=>`lsof -i :${v.port}` },
+  }},
+  { id:'download', label:'Download a file from a URL', cat:'Network', shells:{
+    cmd:{ params:[{k:'url',l:'URL',ph:'https://example.com/file.zip',d:'https://example.com/file.zip'}],
+      build:v=>`curl -O ${v.url}` },
+    powershell:{ params:[{k:'url',l:'URL',ph:'https://example.com/file.zip',d:'https://example.com/file.zip'},{k:'out',l:'Save as',ph:'file.zip',d:'file.zip'}],
+      build:v=>`Invoke-WebRequest -Uri "${v.url}" -OutFile "${v.out}"` },
+    unix:{ params:[{k:'url',l:'URL',ph:'https://example.com/file.zip',d:'https://example.com/file.zip'}],
+      build:v=>`curl -O ${v.url}` },
+  }},
+  { id:'disk-usage', label:'Check a folder\u2019s total size', cat:'System', shells:{
+    powershell:{ params:[{k:'path',l:'Folder',ph:'C:\\Projects',d:'C:\\Projects'}],
+      build:v=>`Get-ChildItem -Path "${v.path}" -Recurse -File | Measure-Object -Property Length -Sum` },
+    unix:{ params:[{k:'path',l:'Folder',ph:'.',d:'.'}],
+      build:v=>`du -sh ${v.path}` },
+  }},
+  { id:'compress', label:'Compress a folder into an archive', cat:'System', shells:{
+    powershell:{ params:[{k:'path',l:'Folder to compress',ph:'C:\\Projects\\logs',d:'C:\\Projects\\logs'},{k:'out',l:'Output .zip name',ph:'logs.zip',d:'logs.zip'}],
+      build:v=>`Compress-Archive -Path "${v.path}" -DestinationPath "${v.out}"` },
+    unix:{ params:[{k:'path',l:'Folder to compress',ph:'./project',d:'./project'},{k:'out',l:'Output name (no extension)',ph:'backup',d:'backup'}],
+      build:v=>`tar -czvf ${v.out}.tar.gz ${v.path}` },
+  }},
+  { id:'hash-file', label:'Compute a file\u2019s hash (SHA256)', cat:'System', shells:{
+    cmd:{ params:[{k:'path',l:'File path',ph:'installer.exe',d:'installer.exe'}],
+      build:v=>`certutil -hashfile "${v.path}" SHA256` },
+    powershell:{ params:[{k:'path',l:'File path',ph:'installer.exe',d:'installer.exe'}],
+      build:v=>`Get-FileHash "${v.path}" -Algorithm SHA256` },
+    unix:{ params:[{k:'path',l:'File path',ph:'installer.pkg',d:'installer.pkg'}],
+      build:v=>`sha256sum ${v.path}` },
+  }},
+];
+
+const GEN_SHELL_LABELS = { cmd:'Command Prompt', powershell:'PowerShell', unix:'WSL / Unix' };
+const GEN_SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(--unix)' };
+
+let genState = { taskId: null, shell: null, values: {} };
+
+function initGenState(taskId, preferredShell){
+  const task = GENERATORS.find(t=>t.id===taskId);
+  const shellKeys = Object.keys(task.shells);
+  const shell = (preferredShell && shellKeys.includes(preferredShell)) ? preferredShell : shellKeys[0];
+  const params = task.shells[shell].params;
+  const values = {};
+  params.forEach(p=>{ values[p.k] = p.d || ''; });
+  genState = { taskId, shell, values };
+}
+
+function currentGenOutput(){
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const conf = task.shells[genState.shell];
+  try{ return conf.build(genState.values); }catch(e){ return ''; }
+}
+
+function updateGenOutput(){
+  const el = document.getElementById('genOutput');
+  if(el) el.textContent = currentGenOutput();
+}
+
+function renderGenerator(){
+  if(!genState.taskId) initGenState(GENERATORS[0].id);
+  const main = document.getElementById('main');
+
+  const cats = [...new Set(GENERATORS.map(g=>g.cat))];
+  let taskListHtml = '';
+  cats.forEach(cat=>{
+    taskListHtml += `<div class="gen-cat-label">${escapeHtml(cat)}</div>`;
+    GENERATORS.filter(g=>g.cat===cat).forEach(g=>{
+      const active = g.id === genState.taskId ? ' active' : '';
+      taskListHtml += `<button type="button" class="gen-task-btn${active}" onclick="onGenTaskClick('${g.id}')">${escapeHtml(g.label)}</button>`;
+    });
+  });
+
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const shellKeys = Object.keys(task.shells);
+  let tabsHtml = '';
+  shellKeys.forEach(sk=>{
+    const active = sk === genState.shell ? ' active' : '';
+    tabsHtml += `<button type="button" class="gen-shell-tab${active}" style="--tab-accent:${GEN_SHELL_COLORS[sk]}" onclick="onGenShellClick('${sk}')">${GEN_SHELL_LABELS[sk]}</button>`;
+  });
+
+  const conf = task.shells[genState.shell];
+  let fieldsHtml = '';
+  conf.params.forEach(p=>{
+    const val = genState.values[p.k] !== undefined ? genState.values[p.k] : '';
+    fieldsHtml += `<label class="gen-field">
+      <span class="gen-field-label">${escapeHtml(p.l)}</span>
+      <input type="text" class="gen-field-input" data-key="${escapeHtml(p.k)}" placeholder="${escapeHtml(p.ph||'')}" value="${escapeHtml(val)}" oninput="onGenInput(this)" autocomplete="off" spellcheck="false">
+    </label>`;
+  });
+
+  main.innerHTML = `<div class="gen-wrap">
+    <div class="gen-intro">
+      <h2>Command generator</h2>
+      <p class="section-sub">Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command.</p>
+    </div>
+    <div class="gen-layout">
+      <div class="gen-tasks">${taskListHtml}</div>
+      <div class="gen-build" style="--card-accent:${GEN_SHELL_COLORS[genState.shell]}">
+        <div class="gen-shell-tabs">${tabsHtml}</div>
+        <div class="gen-fields">${fieldsHtml}</div>
+        <div class="gen-output-wrap">
+          <div class="gen-output-top">
+            <span class="gen-output-label">Generated command</span>
+            <button type="button" class="copy-btn" onclick="copyGenOutput(this)">copy</button>
+          </div>
+          <div class="example gen-output" id="genOutput">${escapeHtml(currentGenOutput())}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function onGenTaskClick(taskId){
+  initGenState(taskId, genState.shell);
+  renderGenerator();
+}
+
+function onGenShellClick(shellKey){
+  initGenState(genState.taskId, shellKey);
+  renderGenerator();
+}
+
+function onGenInput(inputEl){
+  const key = inputEl.getAttribute('data-key');
+  genState.values[key] = inputEl.value;
+  updateGenOutput();
+}
+
+function copyGenOutput(btn){
+  const text = currentGenOutput();
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = 'copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+  });
+}
+
 // ---------- render ----------
 const SECTION_META = {
   cmd: {label:'Command Prompt', color:'var(--cmd)', sub:'The classic cmd.exe — still the fastest way to do a lot of Windows admin tasks.'},
@@ -497,12 +750,23 @@ function matches(item){
   if(activeSection !== 'all' && item.s !== activeSection) return false;
   if(!query) return true;
   const q = query.toLowerCase();
-  return item.cmd.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || item.ex.toLowerCase().includes(q) || item.t.toLowerCase().includes(q);
+  return item.cmd.toLowerCase().includes(q)
+    || item.desc.toLowerCase().includes(q)
+    || item.ex.toLowerCase().includes(q)
+    || item.t.toLowerCase().includes(q)
+    || (item.kw && item.kw.toLowerCase().includes(q));
 }
 
 function render(){
-  const filtered = DATA.filter(matches);
   const main = document.getElementById('main');
+
+  if(activeSection === 'generator'){
+    document.getElementById('resultCount').textContent = '';
+    renderGenerator();
+    return;
+  }
+
+  const filtered = DATA.filter(matches);
   document.getElementById('resultCount').textContent = query ? `${filtered.length} match${filtered.length!==1?'es':''}` : '';
 
   if(filtered.length === 0){
