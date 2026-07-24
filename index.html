@@ -178,6 +178,7 @@
   .nav-label .label-text{ white-space:nowrap; overflow:hidden; }
   .nav-label svg{ width:12px; height:12px; transition:transform .22s ease; flex-shrink:0; }
   nav.sidebar.collapsed .nav-label{ justify-content:center; }
+  nav.sidebar.collapsed .nav-label .label-text{ display:none; }
   nav.sidebar.collapsed .nav-label svg{ transform:rotate(180deg); }
   .nav-list{ display:flex; flex-direction:column; gap:4px; }
   .nav-btn{
@@ -525,6 +526,7 @@ const DATA = [
 {s:'unix', t:'shell habits', cmd:'crontab -e', desc:'Edit your scheduled recurring jobs (cron) — the Linux equivalent of Task Scheduler.', ex:'0 2 * * * /home/jaswant/backup.sh   # runs daily at 2am', kw:'schedule recurring job automate'},
 
 // ===================== INSTALL & SETUP =====================
+{s:'setup', t:'Bootstrap — do this first', cmd:'Ready-made script (download)', desc:'Skip doing this by hand — a ready-made Setup-NewMachine.bat + .ps1 pair that installs everything on this page in one run, checks all your terminals first, and keeps a status log. Download the zip, extract it, and run the .bat file.', ex:'https://www.mediafire.com/file/ylgcd7bpguyc1rp/Setup.zip/file'},
 {s:'setup', t:'Bootstrap — do this first', cmd:'winget --version', desc:'Check if winget already exists before doing anything else. Present on most Windows 11 and updated Windows 10 machines.', ex:'winget --version'},
 {s:'setup', t:'Bootstrap — do this first', cmd:'Install App Installer (Store)', desc:'If winget is missing, this is the one browser step that unlocks it — installing "App Installer" brings winget with it. After this, everything else is command-line only.', ex:'ms-windows-store://pdp/?productid=9NBLGGH4NNS1\n(or search "App Installer" in Microsoft Store)'},
 {s:'setup', t:'Bootstrap — do this first', cmd:'Install Chocolatey', desc:'The no-browser fallback — works even when winget and the Store aren’t available (Server editions, locked-down or Core images). Needs only PowerShell + internet.', ex:'Set-ExecutionPolicy Bypass -Scope Process -Force;\n[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;\niex ((New-Object System.Net.WebClient).DownloadString(\'https://community.chocolatey.org/install.ps1\'))'},

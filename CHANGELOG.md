@@ -2,6 +2,10 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v1.7 - Ready-made setup script download
+
+* Added a card at the top of the "Bootstrap — do this first" tier in Install & setup linking to a downloadable `Setup.zip` (Setup-NewMachine.bat + .ps1) that automates the whole section: checks all terminals/shells present on the machine, installs Python, Node.js, PowerShell 7, Git, VS Code, Windows Terminal, Docker Desktop, 7-Zip, cURL, gsudo, and WSL via winget (falling back to Chocolatey per-package), and logs status to a local file — so the manual command-by-command walkthrough below it becomes optional.
+
 ## v1.6 - Persisted history for the Command Generator
 
 * Every command copied from the generator is now saved to a "Recent commands" list underneath it — task name, shell, full command text, and a relative timestamp (e.g. "3m ago").
