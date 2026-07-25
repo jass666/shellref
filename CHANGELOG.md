@@ -2,6 +2,30 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.1 - Git and Docker sections
+
+* Added Git as a first-class section (27 commands): Basic (`init`, `clone`, `status`, `add`, `commit`, `push`/`pull`, `log`), Useful (`branch`, `checkout -b`, `diff`, `merge`, `stash`, `remote -v`, `.gitignore`, shallow clone), Advanced (`rebase -i`, `cherry-pick`, `bisect`, `blame`, `tag`, `submodule`), and a dedicated "Oh no — undo & recovery" tier (`reset --soft`/`--hard`, `restore`, `revert`, `reflog`, `commit --amend`).
+* Added Docker as a first-class section (19 commands): Basic (`run`, `ps`, `stop`/`start`, `images`, `pull`, `exec -it`), Useful (`logs`, `build`, `rm`/`rmi`, `cp`, `network ls`/`volume ls`, `inspect`), Compose (`up`/`down`, `ps`/`logs`, `build`), and Cleanup (`system prune`, `container prune`/`image prune`, `stats`).
+* Every new entry follows the site's existing format — description, use case, copyable example, keywords — and both sections got sidebar buttons, hero stats, and section counts wired in the same way as the existing shells.
+
+## v2.0 - Use cases everywhere, WSL/Unix expansion, and a beginner FAQ
+
+* Added a short "Use case" line to all 162 command entries site-wide — a concrete one-line scenario for when you'd actually reach for that command, shown between the description and the example.
+* Expanded WSL with a new "Workflow" tier: `code .` (VS Code Remote-WSL), `wsl -e <command>` (run one Linux command without opening a shell), running Linux GUI apps via WSLg, the localhost-works-both-ways behavior, a performance gotcha about working under `/mnt/c` vs the Linux filesystem, and `wsl --status`.
+* Expanded grep/sed/awk/find with a new "core utilities" tier: `head`/`tail -f`, `wc -l`, `diff`, `sort | uniq -c`, `grep -o`, `awk NR`/`NF`, and `find -delete`.
+* Added a new "FAQ for beginners" section (accordion-style, grouped by Getting oriented / Common errors / Copy, paste & basics / Tools & installs) covering CMD vs PowerShell vs WSL, admin mode, PATH, environment variables, execution policy errors, and more.
+* Search now also matches against the new use-case text, not just command/description/example/keywords.
+
+## v1.9 - "Hidden gems" tier for CMD and PowerShell
+
+* Added a new "Hidden gems" tier to both the CMD and PowerShell sections — commands that are gold when you actually need them but obscure the rest of the time.
+* CMD: `| clip` (pipe output to clipboard), `where` (locate an exe on PATH), `net user` / `net localgroup` (local users & admin group membership), `schtasks` (scheduled tasks from the command line), `driverquery`, `vssadmin list shadows` (restore points/shadow copies), `attrib` (hidden/system/read-only file attributes), `getmac /v`.
+* PowerShell: `Select-String` (built-in grep), `Out-GridView` (interactive filterable table), `Get-HotFix` (installed updates), `Get-LocalUser` / `Get-LocalGroupMember`, `Measure-Command` (benchmarking), `Get-WinEvent` (Event Log queries), `Tee-Object` (split output to file + console), `Test-Connection` (structured, scriptable ping).
+
+## v1.8 - Fully hide "Jump to" label when sidebar is collapsed
+
+* **Bug fix**: collapsing the sidebar re-centered the "Jump to" header and flipped its arrow, but never hid its label text — it clipped down to a truncated "Jum ⌃" instead of disappearing like every other label in the rail. Added `nav.sidebar.collapsed .nav-label .label-text{ display:none; }` so it now hides fully, matching the section buttons below it.
+
 ## v1.7 - Ready-made setup script download
 
 * Added a card at the top of the "Bootstrap — do this first" tier in Install & setup linking to a downloadable `Setup.zip` (Setup-NewMachine.bat + .ps1) that automates the whole section: checks all terminals/shells present on the machine, installs Python, Node.js, PowerShell 7, Git, VS Code, Windows Terminal, Docker Desktop, 7-Zip, cURL, gsudo, and WSL via winget (falling back to Chocolatey per-package), and logs status to a local file — so the manual command-by-command walkthrough below it becomes optional.
