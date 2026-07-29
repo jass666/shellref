@@ -2,6 +2,11 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.10 - Fluid container width + tab favicon
+
+* **Layout fix**: `.header-inner`, `.hero`, `.layout`, and `footer` all had `max-width:1280px` hardcoded, so on anything wider than ~1280px (e.g. a 1920px monitor) the page left large fixed margins on both sides regardless of actual screen size. Replaced all four with a single `--container-max: min(1680px, 94vw)` custom property — width now scales with the viewport instead of hard-capping at one breakpoint, while the `1680px` ceiling keeps line lengths and card rows from stretching out uncomfortably on ultrawide/4K displays. The `.cards` grid (`repeat(auto-fill, minmax(300px, 1fr))`) needed no change — it already packs in more columns automatically as its container widens.
+* **Missing favicon**: the page had no `<link rel="icon">` at all, so browser tabs fell back to a blank/generic icon. Added an inline SVG favicon as a `data:` URI (no extra file to host) — a dark rounded-square tile with an amber `>` and light `_`, echoing the site's own `> shell //` logo mark.
+
 ## v2.9 - Office-hours-aware schedule + clickable backup reminder
 
 * **Schedule fix**: updated "Schedule an automatic recurring backup" to actually reflect office hours (9:30 AM–6:30 PM, closed Sunday) instead of a generic `/sc daily` guess — now `/sc weekly /d MON,TUE,WED,THU,FRI,SAT /st 19:00`, skipping Sunday and running a half-hour after close so Outlook is reliably shut down first.

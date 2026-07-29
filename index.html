@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>shell// — a command reference</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0E13'/%3E%3Ctext x='8' y='43' font-family='JetBrains Mono, monospace' font-weight='700' font-size='30' fill='%23FFB020'%3E%3E%3C/text%3E%3Ctext x='27' y='43' font-family='JetBrains Mono, monospace' font-weight='700' font-size='30' fill='%23E7E9EE'%3E_%3C/text%3E%3C/svg%3E">
 <script>
   (function(){
     try{
@@ -20,6 +21,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
+    /* Fluid container width: hugs content on small screens, scales up
+       with the viewport on large ones, and caps so lines don't get
+       absurdly long on ultrawide/4K monitors. */
+    --container-max: min(1680px, 94vw);
     --bg:#0B0E13;
     --panel:#131720;
     --panel-hover:#171C27;
@@ -84,7 +89,7 @@
     border-bottom:1px solid var(--border-soft);
   }
   .header-inner{
-    max-width:1280px; margin:0 auto; padding:14px 24px;
+    max-width:var(--container-max); margin:0 auto; padding:14px 24px;
     display:flex; align-items:center; gap:24px;
   }
   .logo{
@@ -126,7 +131,7 @@
 
   /* ===== Hero ===== */
   .hero{
-    max-width:1280px; margin:0 auto; padding:56px 24px 40px;
+    max-width:var(--container-max); margin:0 auto; padding:56px 24px 40px;
     display:grid; grid-template-columns: 1.1fr 0.9fr; gap:48px; align-items:center;
   }
   .hero h1{
@@ -164,7 +169,7 @@
   @keyframes blink{ 50%{ opacity:0; } }
 
   /* ===== Layout ===== */
-  .layout{ max-width:1280px; margin:0 auto; padding:8px 24px 80px; display:flex; align-items:flex-start; gap:36px; }
+  .layout{ max-width:var(--container-max); margin:0 auto; padding:8px 24px 80px; display:flex; align-items:flex-start; gap:36px; }
   @media (max-width: 880px){ .layout{ flex-direction:column; } nav.sidebar{ width:100% !important; position:static; } .hero{ grid-template-columns:1fr; } }
 
   nav.sidebar{
@@ -366,7 +371,7 @@
   #toTop svg{ width:17px; height:17px; }
   @media (prefers-reduced-motion: reduce){ #toTop{ transition:opacity .01s; } }
 
-  footer{ max-width:1280px; margin:0 auto; padding:20px 24px 60px; color:var(--muted-2); font-size:12px; border-top:1px solid var(--border-soft); }
+  footer{ max-width:var(--container-max); margin:0 auto; padding:20px 24px 60px; color:var(--muted-2); font-size:12px; border-top:1px solid var(--border-soft); }
 
   @media (prefers-reduced-motion: reduce){ .cursor{ animation:none; } }
 </style>
