@@ -53,15 +53,31 @@
     --bg:#F3F5F8;
     --panel:#FFFFFF;
     --panel-hover:#EDF0F5;
-    --border:#DCE1E9;
-    --border-soft:#E7EAF0;
+    --border:#C7CFDA;
+    --border-soft:#DEE3EB;
     --text:#1A2029;
     --muted:#5B6472;
-    --muted-2:#8891A0;
+    --muted-2:#6C7687;
     --header-bg:rgba(243,245,248,0.88);
     --example-bg:rgba(20,30,45,0.045);
     --example-text:#3C4452;
     --shadow:rgba(30,40,60,0.14);
+    /* Accent hues are tuned for a dark background by default; on white/near-white
+       panels the same hex values read too pale (several under 3:1 against white),
+       so darken/saturate each one here to clear WCAG AA (4.5:1) for text use
+       (section counts, nav labels, "copied" state) while keeping the dot colors
+       clearly distinguishable from each other. */
+    --amber:#B87500;
+    --cmd:#4977BA;
+    --ps:#196DFF;
+    --wsl:#C14992;
+    --unix:#39836C;
+    --setup:#9D6E15;
+    --reg:#8661D0;
+    --outlook:#217AC4;
+    --faq:#3769FF;
+    --git:#DA3D01;
+    --docker:#177DB8;
   }
   html{ transition:background-color .2s ease; }
   *{box-sizing:border-box;}
@@ -225,14 +241,14 @@
   }
   .tier-label::after{ content:''; flex:1; height:1px; background:var(--border-soft); }
 
-  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; align-items:start; }
   .card{
     background:var(--panel); border:1px solid var(--border); border-radius:9px;
     padding:14px 14px 12px; border-left:3px solid var(--card-accent, var(--border));
     transition:transform .12s, border-color .12s;
   }
   .card:hover{ border-color:var(--muted-2); }
-  .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px;}
+  .card-top{ margin-bottom:6px;}
   .card .cmd{ font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:600; color:var(--text); word-break:break-word; }
   .copy-btn{
     flex-shrink:0; background:transparent; border:1px solid var(--border); color:var(--muted);
@@ -241,6 +257,14 @@
   }
   .copy-btn:hover{ color:var(--text); border-color:var(--muted-2); }
   .copy-btn.copied{ color:var(--unix); border-color:var(--unix); }
+  .copy-btn-inline{
+    position:absolute; top:6px; right:6px; z-index:1;
+    background:var(--panel); border:1px solid var(--border); color:var(--muted);
+    border-radius:5px; padding:2px 6px; cursor:pointer; font-size:9.5px; font-family:'JetBrains Mono', monospace;
+    line-height:1.6; opacity:.75; transition:all .12s;
+  }
+  .copy-btn-inline:hover{ opacity:1; color:var(--text); border-color:var(--muted-2); }
+  .copy-btn-inline.copied{ opacity:1; color:var(--unix); border-color:var(--unix); }
   .card .desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; }
   .card .usecase{ font-size:12px; color:var(--muted-2); line-height:1.5; margin:0 0 8px; font-style:italic; }
   .card .usecase b{ font-style:normal; font-weight:600; color:var(--muted); }
@@ -262,8 +286,9 @@
   .faq-item[open] summary::before{ content:'−'; }
   .faq-item p{ font-size:13px; color:var(--muted); line-height:1.6; margin:10px 0 0 24px; }
   .card .example{
+    position:relative;
     background:var(--example-bg); border:1px solid var(--border-soft); border-radius:6px;
-    padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--example-text);
+    padding:8px 34px 8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--example-text);
     white-space:pre-wrap; word-break:break-word; line-height:1.5;
   }
   .card .example .cm{ color:var(--muted-2); }
@@ -1311,11 +1336,10 @@ function render(){
         html += `<div class="card" style="--card-accent:${meta.color}">
           <div class="card-top">
             <div class="cmd">${escapeHtml(item.cmd)}</div>
-            <button class="copy-btn" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button>
           </div>
           <p class="desc">${escapeHtml(item.desc)}</p>
           ${item.use ? `<p class="usecase"><b>Use case:</b> ${escapeHtml(item.use)}</p>` : ''}
-          <div class="example">${escapeHtml(item.ex)}</div>
+          <div class="example">${escapeHtml(item.ex)}<button class="copy-btn-inline" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button></div>
         </div>`;
       });
       html += `</div>`;
