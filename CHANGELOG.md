@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.2 - Drive quick-picks in the Command Generator
+
+* **Gap fix**: the "Folder to search" field in every generator task was a plain text box — there was no direct way to target a whole drive (C:, D:, E:, F:) or the entire machine without typing a path by hand. Added a row of quick-pick chips under the field on every task that touches a folder tree: find by extension, find by name, find recently modified, find large files, delete by extension, search text in files, and check folder size.
+* CMD/PowerShell tasks get `C:` `D:` `E:` `F:` chips plus an "All drives (entire system)" chip; WSL/Unix tasks get `C:` `D:` `E:` `F:` (mapped to `/mnt/c` etc.) plus a "Whole filesystem (/)" chip. Clicking a chip fills the field instantly and re-generates the command.
+* "All drives" isn't just the single-folder command pointed at a drive root — each shell's `build()` now branches to a real system-wide form: PowerShell loops `Get-PSDrive -PSProvider FileSystem` (fully dynamic, no hardcoded letters), CMD loops `for %d in (C D E F G H) do @if exist %d:\ ...` with each drive's existence checked first, and Unix/WSL runs `find /` or `grep -r /` with `2>/dev/null` to swallow permission-denied noise from system folders.
+* Deliberately left off the "All drives" / whole-filesystem chip on the delete-by-extension task — it still gets the individual drive-root chips, but a one-click system-wide `del`/`Remove-Item`/`find -delete` felt like the wrong thing to make that easy.
+* Added `.gen-drive-picks` / `.gen-drive-chip` styles (reusing existing theme variables) and an `onGenQuickPick()` handler alongside the existing `onGenInput()`.
+
 ## v2.1 - Git and Docker sections
 
 * Added Git as a first-class section (27 commands): Basic (`init`, `clone`, `status`, `add`, `commit`, `push`/`pull`, `log`), Useful (`branch`, `checkout -b`, `diff`, `merge`, `stash`, `remote -v`, `.gitignore`, shallow clone), Advanced (`rebase -i`, `cherry-pick`, `bisect`, `blame`, `tag`, `submodule`), and a dedicated "Oh no — undo & recovery" tier (`reset --soft`/`--hard`, `restore`, `revert`, `reflog`, `commit --amend`).
