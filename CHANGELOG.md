@@ -2,6 +2,27 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.6 - Outlook / PST section (16 commands, 4 tiers)
+
+* **New section**: added "Outlook / PST" as a first-class section, wired the same way as every other section — sidebar button, hero stat (`statOutlook`), section count (`cOutlook`), and a dedicated `--outlook` theme accent color.
+* Organized into four tiers matching the actual troubleshooting flow — look, then repair, then reset, then manage profile: **Diagnose first** (finding every PST/OST on the machine, checking file size against the ~50GB Unicode-PST cap, confirming Outlook is fully closed before repair tools will touch a file), **Repair (Inbox Repair Tool)** (locating `scanpst.exe` by Outlook version/bitness, running it directly against a file, backing the PST up first since a repair can discard unreadable items rather than recovering them), **Reset & recovery switches** (`outlook.exe /safe`, `/resetnavpane`, `/cleanviews`, `/cleanreminders`, `/cleanrules`, `/resetfolders`, `/importprf`), and **Profile management** (`control mlcfg32.cpl`, `/profiles`, `/profile "name"`).
+* Every entry follows the site's existing card format (description, use case, copyable example, keywords) and is wired into search/`matches()` like every other section.
+* Section header carries a short safety note (`SECTION_META.outlook.sub`) about backing up a PST before running the repair tool, since scanpst.exe has no undo.
+
+## v2.5 - Fix double backslash when a drive quick-pick is used in the generator
+
+* **Bug fix**: selecting a drive chip (e.g. `C:`) in the Command Generator produced commands like `dir "C:\\*.pst" /s /b` — a double backslash. The drive picks store their value with a trailing backslash (`"C:\"`, a valid, unambiguous root), but the affected `build()` functions joined `v.path` with a hardcoded `\` before the pattern, assuming the path never ends in one. Typing `C:\Projects` (no trailing slash) worked fine; picking `C:\` did not.
+* Added a `winPath()` helper that strips any trailing backslash/slash from a path before it's joined with a hardcoded separator, and applied it at the five spots that do this join: find-by-extension (CMD), find-by-name (CMD), delete-by-extension (CMD and PowerShell), and search-text-in-files (CMD, top-level scope). Both a drive pick and a manually typed path (with or without a trailing slash) now produce a single, correct backslash.
+* No behavior changed for tasks that pass `v.path` straight into `-Path "..."` (PowerShell) or as a bare arg (`find`, `du`, `grep -r`, etc.) — those already tolerated a trailing backslash/slash fine and were not touched.
+
+## v2.4 - Registry section (20 commands, 5 tiers)
+
+* **New section**: added "Registry" as a first-class section covering `reg.exe` and the PowerShell registry provider, alongside sidebar button, hero stat (`statReg`), section count (`cReg`), and a dedicated `--reg` theme accent color.
+* Organized into five tiers, deliberately ordered with safety first: **Backup & safety** (`reg export`, `reg import`, System Restore checkpoint, full-hive export), **Read & query** (`reg query`, `/s`, `/f` search, `Get-ItemProperty`, `Get-ChildItem`), **Add & modify** (`reg add`, `reg delete`, `Set-ItemProperty`/`New-ItemProperty`, `New-Item`/`Remove-Item`, `reg copy`), **.reg files** (authoring the file format, `regedit /s` silent import, writing a `-delete` .reg file), and **Compare & diagnose** (`reg compare`, `Get-PSDrive` sanity check, reading the Uninstall key for an installed-software audit).
+* Every entry follows the site's existing card format (description, use case, copyable example, keywords) and is wired into search/`matches()` the same way as every other section — no separate code path.
+* Added a section-level disclaimer (shown in the section header, `SECTION_META.reg.sub`) covering the core registry-editing risks: no Recycle Bin for a bad key change, always export before editing, only run `.reg` files you understand, and prefer a System Restore point before wide-reaching changes.
+* Scope note: this section covers reading and modifying Windows configuration via the registry only. It does not include, and will not include, software activation/license-bypass commands or third-party "activator" scripts — those work by circumventing license checks, which is a different category of tool from the documentation-only reference this site provides.
+
 ## v2.3 - Fix unclickable drive-letter chips
 
 * **Bug fix**: the drive quick-pick chips added in v2.2 used inline `onclick="onGenQuickPick('path','C:\')"` handlers built with `escapeHtml()`, which only escapes `&`/`<`/`>`. The trailing backslash in `C:\`, `D:\`, `E:\`, `F:\` escaped the closing `'` inside the inline JS string, breaking the attribute's parse and silently no-opping the click — the `C`/`D`/`E`/`F` chips did nothing, while backslash-free chips like "All drives" worked fine. Added a `jsAttr()` helper that escapes backslashes and stray quotes for safe embedding in an inline single-quoted JS string, and swapped it in for the two values passed to `onGenQuickPick`.

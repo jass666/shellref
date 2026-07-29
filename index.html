@@ -34,6 +34,8 @@
     --wsl:#C2679E;
     --unix:#4FA187;
     --setup:#D9A441;
+    --reg:#8E6FCB;
+    --outlook:#2E7FC2;
     --faq:#7C9DFF;
     --git:#F0652F;
     --docker:#3B9FD9;
@@ -398,6 +400,8 @@
       <div><div class="n" id="statGit">0</div><div class="l">git</div></div>
       <div><div class="n" id="statDocker">0</div><div class="l">docker</div></div>
       <div><div class="n" id="statSetup">0</div><div class="l">installs</div></div>
+      <div><div class="n" id="statReg">0</div><div class="l">registry</div></div>
+      <div><div class="n" id="statOutlook">0</div><div class="l">outlook</div></div>
     </div>
   </div>
   <div class="terminal">
@@ -421,6 +425,8 @@
     <button class="nav-btn" data-target="git" title="Git"><span class="nav-btn-main"><span class="dot" style="background:var(--git)"></span><span class="label-text">Git</span></span><span class="count" id="cGit">0</span></button>
     <button class="nav-btn" data-target="docker" title="Docker"><span class="nav-btn-main"><span class="dot" style="background:var(--docker)"></span><span class="label-text">Docker</span></span><span class="count" id="cDocker">0</span></button>
     <button class="nav-btn" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
+    <button class="nav-btn" data-target="reg" title="Registry"><span class="nav-btn-main"><span class="dot" style="background:var(--reg)"></span><span class="label-text">Registry</span></span><span class="count" id="cReg">0</span></button>
+    <button class="nav-btn" data-target="outlook" title="Outlook / PST"><span class="nav-btn-main"><span class="dot" style="background:var(--outlook)"></span><span class="label-text">Outlook / PST</span></span><span class="count" id="cOutlook">0</span></button>
     <div class="nav-divider"></div>
     <button class="nav-btn" data-target="generator" title="Command Generator"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Command generator</span></span></button>
     <button class="nav-btn" data-target="faq" title="FAQ for beginners"><span class="nav-btn-main"><span class="dot" style="background:var(--faq)"></span><span class="label-text">FAQ for beginners</span></span></button>
@@ -683,6 +689,62 @@ const DATA = [
 {s:'setup', t:'Virtual environments', cmd:'Activate venv (PowerShell)', desc:'Activate the virtual environment from PowerShell. If blocked, allow local scripts first.', use:'Same as CMD, but working from a PowerShell terminal.', ex:'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser\n.venv\\Scripts\\Activate.ps1'},
 {s:'setup', t:'Virtual environments', cmd:'deactivate', desc:'Leave the active virtual environment and return to your normal shell.', use:'Step back out to the system Python before switching to a different project.', ex:'deactivate'},
 {s:'setup', t:'Virtual environments', cmd:'Enable WSL (feature flag)', desc:'Manually enable the WSL + Virtual Machine Platform Windows features (what wsl --install does under the hood).', use:'A machine somehow does not have WSL available yet — turn the underlying Windows feature on first.', ex:'dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart\ndism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart'},
+
+// ===================== Registry =====================
+// Every entry in this section edits or reads the Windows Registry, which has no
+// Recycle Bin — a bad key change can stop Windows or an app from booting. The
+// "Backup & safety" tier is placed first on purpose: back up before you touch
+// anything else here, and always know the undo path before you commit an edit.
+{s:'reg', t:'Backup & safety', cmd:'reg export (back up a key first)', desc:'Save a full copy of a registry key — and everything under it — to a .reg file before changing anything. This is the single most important habit for registry work: if an edit goes wrong, re-importing this file restores the exact prior state.', use:'About to edit a startup or policy key — export it first so there is a one-click way back.', ex:'reg export "HKCU\\Software\\MyApp" C:\\Backups\\MyApp_before.reg', kw:'backup registry key before editing safety undo save reg file'},
+{s:'reg', t:'Backup & safety', cmd:'reg import (undo via backup)', desc:'Restore a previously exported .reg file, overwriting the current values with the ones saved in the backup.', use:'A registry change broke something — reverse it by importing the export taken beforehand.', ex:'reg import C:\\Backups\\MyApp_before.reg', kw:'restore registry undo revert reg backup rollback'},
+{s:'reg', t:'Backup & safety', cmd:'System Restore point (checkpoint before big changes)', desc:'Create a full system restore point before a batch of registry or system changes — broader safety net than exporting one key, covers drivers and installed software state too.', use:'About to run a third-party "tweak" tool or make several unrelated registry changes in one sitting.', ex:'wmic.exe /Namespace:\\\\root\\default Path SystemRestore Call CreateRestorePoint "Before registry changes", 100, 7', kw:'create restore point before changes system checkpoint safety net'},
+{s:'reg', t:'Backup & safety', cmd:'Export the entire hive (disaster-recovery level)', desc:'Back up an entire top-level hive (all of HKCU, or all of HKLM) rather than a single key — much larger file, but a complete snapshot. Reserve this for before major, wide-reaching changes, not routine single-key edits.', use:'About to run an automated script that touches many unrelated keys across the registry.', ex:'reg export HKCU C:\\Backups\\HKCU_full.reg\nreg export HKLM C:\\Backups\\HKLM_full.reg', kw:'backup entire registry full hive export before major changes'},
+
+{s:'reg', t:'Read & query', cmd:'reg query', desc:'Read a key\'s values without changing anything — the safe way to check what is actually set before deciding whether to change it.', use:'Confirm what a suspicious startup entry actually points to before deleting it.', ex:'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"', kw:'read registry value check current setting view key'},
+{s:'reg', t:'Read & query', cmd:'reg query /s (recursive)', desc:'Recursively list a key and every value under every subkey beneath it.', use:'See everything an installed application wrote under its own registry key, in one shot.', ex:'reg query "HKCU\\Software\\MyApp" /s', kw:'list all subkeys recursive registry search'},
+{s:'reg', t:'Read & query', cmd:'reg query /f (search by name)', desc:'Search for a value or key name containing a given text under a starting key, optionally across data too with /d.', use:'Track down which key under Run is launching an app whose exact registry name is unknown.', ex:'reg query HKCU\\Software /f "MyApp" /s\nreg query HKCU\\Software /f "MyApp" /s /d', kw:'search registry find key by name find value grep registry'},
+{s:'reg', t:'Read & query', cmd:'Get-ItemProperty (PowerShell)', desc:'PowerShell\'s way to read registry values — the registry is exposed as its own PSDrive, so normal Get-Item/Get-ItemProperty cmdlets work on it like a filesystem.', use:'Pull a single value out of a key inside a script, as a real object rather than parsed text.', ex:'Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"', kw:'powershell read registry value get item property'},
+{s:'reg', t:'Read & query', cmd:'Get-ChildItem (list subkeys, PowerShell)', desc:'List the subkeys beneath a registry path, PowerShell-native — the registry hives HKLM: and HKCU: behave like drives you can Get-ChildItem, cd (Set-Location), and pipe.', use:'Enumerate every subkey under an app\'s settings key before scripting a cleanup.', ex:'Get-ChildItem -Path "HKCU:\\Software\\MyApp"', kw:'powershell list registry subkeys enumerate keys'},
+
+{s:'reg', t:'Add & modify', cmd:'reg add', desc:'Create or update a value inside a key. /f skips the overwrite confirmation prompt — leave it off the first time on an unfamiliar key so the prompt gives one last look before committing.', use:'Add a REG_DWORD flag an app\'s documentation says to set, without opening regedit at all.', ex:'reg add "HKCU\\Software\\MyApp" /v EnableFeature /t REG_DWORD /d 1 /f', kw:'add registry value set key create value edit registry'},
+{s:'reg', t:'Add & modify', cmd:'reg delete', desc:'Delete a value, or an entire key and everything beneath it with /f. There is no Recycle Bin for the registry — export the key first (see Backup & safety tier) if there is any doubt.', use:'Remove a leftover startup entry left behind by an uninstalled app.', ex:'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v OldApp /f\nreg delete "HKCU\\Software\\OldApp" /f', kw:'delete registry key remove value uninstall leftover entry'},
+{s:'reg', t:'Add & modify', cmd:'Set-ItemProperty / New-ItemProperty (PowerShell)', desc:'Update an existing value with Set-ItemProperty, or create a brand-new one with New-ItemProperty — the object-based equivalents of reg add.', use:'Set a DWORD flag inside a script and check the return object to confirm it landed correctly.', ex:'New-ItemProperty -Path "HKCU:\\Software\\MyApp" -Name "EnableFeature" -PropertyType DWord -Value 1\nSet-ItemProperty -Path "HKCU:\\Software\\MyApp" -Name "EnableFeature" -Value 0', kw:'powershell set registry value create new property'},
+{s:'reg', t:'Add & modify', cmd:'New-Item / Remove-Item (create or delete a key, PowerShell)', desc:'Create a brand-new registry key, or delete one (with -Recurse for a key that has subkeys), using the same filesystem-style cmdlets PowerShell uses everywhere else.', use:'Script the creation of a settings key for a new deployment without touching regedit.', ex:'New-Item -Path "HKCU:\\Software\\MyApp"\nRemove-Item -Path "HKCU:\\Software\\MyApp" -Recurse', kw:'powershell create registry key delete key remove recurse'},
+{s:'reg', t:'Add & modify', cmd:'reg copy', desc:'Copy a key (and, with /s, its subkeys) from one location to another — including across HKCU and HKLM, or to a remote machine.', use:'Duplicate a working app config key to test a change without risking the original.', ex:'reg copy "HKCU\\Software\\MyApp" "HKCU\\Software\\MyApp_backup" /s', kw:'copy registry key duplicate clone key'},
+
+{s:'reg', t:'.reg files', cmd:'Author a .reg file', desc:'A .reg file is plain text: a Windows Registry Editor Version 5.00 header, then one or more [Key] sections with "Value"=data lines. Double-clicking one merges it into the registry — the same mechanism reg import and regedit /s use, so it is worth being able to read one, not just double-click it.', use:'A forum post shares a "fix" as a .reg file — read it before running it, to know exactly what it will change.', ex:'Windows Registry Editor Version 5.00\n\n[HKEY_CURRENT_USER\\Software\\MyApp]\n"EnableFeature"=dword:00000001', kw:'reg file format registry file syntax read reg file merge'},
+{s:'reg', t:'.reg files', cmd:'regedit /s (silent import)', desc:'Import a .reg file with no confirmation dialogs — useful for scripted deployment, but that also means no last-chance prompt, so only run this against a .reg file whose contents have already been reviewed.', use:'Roll the same settings key out to several machines via a deployment script.', ex:'regedit /s C:\\Deploy\\settings.reg', kw:'silent registry import script deploy no prompt regedit'},
+{s:'reg', t:'.reg files', cmd:'Write a -delete .reg file', desc:'A .reg file can also remove things: a minus sign before a key path deletes that whole key, and a value set to -Del- deletes just that value.', use:'Ship a "clean uninstall" .reg file alongside an app removal script.', ex:'Windows Registry Editor Version 5.00\n\n[-HKEY_CURRENT_USER\\Software\\OldApp]\n\n[HKEY_CURRENT_USER\\Software\\MyApp]\n"OldSetting"=-', kw:'reg file delete key remove value uninstall registry cleanup'},
+
+{s:'reg', t:'Compare & diagnose', cmd:'reg compare', desc:'Diff two keys (or the same key on two machines/exports) and report which values differ.', use:'A setting works on one machine but not another — compare the same key across both to spot the difference.', ex:'reg compare "HKCU\\Software\\MyApp" C:\\Backups\\MyApp_before.reg', kw:'compare registry keys diff difference between machines'},
+{s:'reg', t:'Compare & diagnose', cmd:'Get-PSDrive HKLM: / HKCU: sanity check', desc:'Confirm the registry PSDrives are mounted and accessible before running a script that depends on them — occasionally missing in a restricted PowerShell session.', use:'A registry-reading script errors with "drive not found" — check the PSDrive exists first.', ex:'Get-PSDrive -PSProvider Registry', kw:'powershell registry drive missing troubleshoot psdrive'},
+{s:'reg', t:'Compare & diagnose', cmd:'reg query HKLM\\...\\Uninstall (installed software list)', desc:'Read the Uninstall key to get a full list of installed software with version and publisher — the same data Control Panel\'s "Programs and Features" reads from, but scriptable.', use:'Audit what is actually installed on a machine without opening Control Panel by hand.', ex:'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" /s', kw:'list installed programs registry uninstall key audit software'},
+
+// ===================== Outlook / PST =====================
+// One place for the recurring "Outlook is acting up" toolbox: finding and sizing
+// PST/OST files, repairing a damaged PST with the built-in Inbox Repair Tool, the
+// startup switches that reset a broken profile/view without reinstalling anything,
+// and profile management. Order follows the actual troubleshooting flow: look →
+// repair → reset → manage profile.
+{s:'outlook', t:'Diagnose first', cmd:'Find every PST/OST file on this machine', desc:'Locate all Outlook data files before doing anything else — modern Outlook stores them under %userprofile%\\AppData\\Local\\Microsoft\\Outlook by default, but old or moved profiles can have PSTs anywhere. Same idea as the Files section\'s "find by extension" task, just pointed at Outlook\'s two extensions.', use:'A PST is "missing" after a profile change — confirm where Outlook is actually looking before assuming data was lost.', ex:'dir "%userprofile%\\AppData\\Local\\Microsoft\\Outlook\\*.pst" /s /b\ndir "%userprofile%\\AppData\\Local\\Microsoft\\Outlook\\*.ost" /s /b\ndir C:\\*.pst /s /b 2>nul', kw:'find pst file location outlook ost where is my pst locate data file'},
+{s:'outlook', t:'Diagnose first', cmd:'Check a PST/OST file\'s size', desc:'Unicode PST files (Outlook 2010+) default to a soft cap around 50GB, but files that large get slow and more failure-prone well before that — many admins treat 20GB as the practical comfort limit. Check size before assuming a "PST is corrupt" complaint is actually corruption and not just bloat.', use:'Outlook has become sluggish and slow to search — check if the PST has quietly grown huge before troubleshooting further.', ex:'dir "C:\\Users\\name\\AppData\\Local\\Microsoft\\Outlook\\Outlook.pst"\nGet-Item "C:\\Users\\name\\AppData\\Local\\Microsoft\\Outlook\\Outlook.pst" | Select-Object Length', kw:'check pst file size outlook too big slow large mailbox'},
+{s:'outlook', t:'Diagnose first', cmd:'Confirm Outlook is fully closed', desc:'The Inbox Repair Tool and most reset switches refuse to touch a PST/profile while Outlook (or a leftover background process) still has it open. Check the process list before running scanpst — a silent failure to repair is often just this.', use:'scanpst.exe reports it can\'t open the file, even though the Outlook window is already closed.', ex:'tasklist | findstr OUTLOOK\ntaskkill /IM OUTLOOK.EXE /F', kw:'outlook still running background process close before repair scanpst locked file'},
+
+{s:'outlook', t:'Repair (Inbox Repair Tool)', cmd:'Locate scanpst.exe', desc:'The built-in Inbox Repair Tool for PST/OST corruption. Its folder depends on your Outlook version and whether it\'s 32-bit or 64-bit — click-to-run Microsoft 365 and Outlook 2016/2019/2021 normally put it under the "root" path shown here; older per-bitness installs use Office12–Office15 instead.', use:'A PST throws "file in use" or "not a personal folder file" errors and needs the official repair tool rather than a manual fix.', ex:'"C:\\Program Files\\Microsoft Office\\root\\Office16\\SCANPST.EXE"\n"C:\\Program Files (x86)\\Microsoft Office\\root\\Office16\\SCANPST.EXE"', kw:'scanpst location find inbox repair tool path outlook 365 2016 2019 2021'},
+{s:'outlook', t:'Repair (Inbox Repair Tool)', cmd:'Run scanpst.exe against a file', desc:'Launch the tool directly with the target file already filled in, skipping the manual Browse step. It still opens its normal GUI to scan, then offers a repair — this isn\'t a silent/unattended switch. Always let it make a backup copy on the first pass, since a repair can discard unreadable items rather than recovering them.', use:'Repairing the same PST repeatedly during a longer troubleshooting session — skip re-browsing to it each time.', ex:'"C:\\Program Files\\Microsoft Office\\root\\Office16\\SCANPST.EXE" "C:\\Users\\name\\AppData\\Local\\Microsoft\\Outlook\\Outlook.pst"', kw:'run scanpst repair pst file inbox repair tool with path'},
+{s:'outlook', t:'Repair (Inbox Repair Tool)', cmd:'Back up before repairing', desc:'Copy the PST somewhere safe before scanpst touches it — a repair pass can drop corrupted items permanently rather than fixing them, so the pre-repair copy is the only way back if that happens.', use:'About to repair a PST that has months of email in it and there\'s no other backup.', ex:'copy "C:\\Users\\name\\AppData\\Local\\Microsoft\\Outlook\\Outlook.pst" "C:\\Backups\\Outlook_before_repair.pst"', kw:'backup pst before scanpst repair copy outlook data file safety'},
+
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /safe', desc:'Starts Outlook with add-ins disabled and the Navigation Pane/toolbar customizations reset — the fastest way to check whether a crash or freeze is caused by an add-in or a corrupted UI state rather than the data file itself.', use:'Outlook crashes on startup — check whether it\'s an add-in before suspecting the PST is damaged.', ex:'outlook.exe /safe', kw:'outlook safe mode start without addins troubleshoot crash startup'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /resetnavpane', desc:'Clears and rebuilds the Navigation Pane (folder list) for the current profile — fixes a folder pane that\'s missing folders, frozen, or showing stale entries after a sync issue.', use:'The folder list looks wrong or won\'t update after a mailbox move or resync.', ex:'outlook.exe /resetnavpane', kw:'outlook reset navigation pane folder list broken missing folders'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /cleanviews', desc:'Restores every folder view to its default layout for the current profile. Use with care — any custom views (custom columns, filters, grouping) built up over time are lost, not just the broken one.', use:'A folder shows blank, garbled, or won\'t sort correctly after a custom view got corrupted.', ex:'outlook.exe /cleanviews', kw:'outlook reset views broken display corrupted folder view'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /cleanreminders', desc:'Clears every pending reminder, including ones stuck in a corrupted state that keep reappearing no matter how many times they\'re dismissed.', use:'A calendar reminder keeps popping back up after being dismissed, over and over.', ex:'outlook.exe /cleanreminders', kw:'outlook reminders stuck wont go away popup keeps appearing'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /cleanrules', desc:'Deletes every rule (both client-side and server-side) from every mailbox in the current profile. There\'s no undo and no picking-and-choosing which rules go — export or note down rules worth re-creating before running this.', use:'A rule loop or corrupted rule is silently misfiling or deleting incoming mail and needs a clean slate.', ex:'outlook.exe /cleanrules', kw:'outlook delete all rules corrupted rule loop misfiling mail'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /resetfolders', desc:'Recreates any default folders (Inbox, Sent Items, etc.) that are missing from the mailbox, without touching the data already inside existing folders.', use:'A default folder like Sent Items has gone missing from the folder list after a sync hiccup.', ex:'outlook.exe /resetfolders', kw:'outlook missing default folder recreate inbox sent items'},
+{s:'outlook', t:'Reset & recovery switches', cmd:'outlook.exe /importprf path\\to\\file.prf', desc:'Silently imports a .prf profile-configuration file to set up (or reconfigure) a mail profile without walking through the setup wizard by hand. /promptimportprf does the same thing but asks for confirmation first.', use:'Rolling out the same mailbox profile configuration to several machines without repeating the wizard on each one.', ex:'outlook.exe /importprf C:\\Deploy\\profile.prf', kw:'outlook import profile prf file deploy setup automation'},
+
+{s:'outlook', t:'Profile management', cmd:'control mlcfg32.cpl (open Mail Setup)', desc:'Opens the classic "Mail Setup" control panel applet — Show Profiles lets you add, remove, or set the default profile. On some Windows 11 builds this direct command no longer resolves; run plain control and click "Mail" from the Control Panel window instead.', use:'A profile has become unusable and the cleanest fix is creating a fresh one rather than resetting it piece by piece.', ex:'control mlcfg32.cpl', kw:'outlook mail control panel manage profiles add remove profile'},
+{s:'outlook', t:'Profile management', cmd:'outlook.exe /profiles', desc:'Opens the "Choose Profile" picker on startup regardless of the current "always use this profile" setting — a quick way to switch profiles for one session without changing the default.', use:'Test a newly created profile once without making it the everyday default yet.', ex:'outlook.exe /profiles', kw:'outlook choose profile picker switch profile temporarily'},
+{s:'outlook', t:'Profile management', cmd:'outlook.exe /profile "ProfileName"', desc:'Starts Outlook directly with a specific named profile, skipping the picker entirely — quote the name if it contains spaces.', use:'A shared machine has one Windows login but multiple people\'s Outlook profiles — give each person their own shortcut.', ex:'outlook.exe /profile "Jaswant"', kw:'outlook load specific profile shortcut named profile startup'},
 ];
 
 // ---------- command generator ----------
@@ -710,12 +772,20 @@ const UNIX_DRIVE_PICKS = [
 ];
 const UNIX_DRIVE_PICKS_SAFE = UNIX_DRIVE_PICKS.filter(p=>!p.all);
 
+// Drive quick-picks store a path with a trailing backslash (e.g. "C:\") so it's a valid,
+// unambiguous root on its own. But several build() functions below join v.path with a
+// hardcoded "\" before appending a pattern (e.g. `${v.path}\*.${ext}`), which assumes the
+// path has NO trailing backslash — typing "C:\Projects" (no trailing slash) works fine,
+// but picking "C:\" produces "C:\\*.ext". Strip any trailing backslash/slash here before
+// that kind of join so both typed paths and drive-picked paths produce a single backslash.
+function winPath(p){ return String(p).replace(/[\\/]+$/, ''); }
+
 const GENERATORS = [
   { id:'find-ext', label:'Find files by extension', cat:'Files', shells:{
     cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `for %d in (C D E F G H) do @if exist %d:\\ dir "%d:\\*.${v.ext}" /s /b 2>nul`
-        : (v.scope==='top' ? `dir "${v.path}\\*.${v.ext}" /b` : `dir "${v.path}\\*.${v.ext}" /s /b`) },
+        : (v.scope==='top' ? `dir "${winPath(v.path)}\\*.${v.ext}" /b` : `dir "${winPath(v.path)}\\*.${v.ext}" /s /b`) },
     powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `Get-PSDrive -PSProvider FileSystem | ForEach-Object { Get-ChildItem -Path $_.Root -Filter *.${v.ext} -Recurse -ErrorAction SilentlyContinue }`
@@ -729,7 +799,7 @@ const GENERATORS = [
     cmd:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `for %d in (C D E F G H) do @if exist %d:\\ dir "%d:\\*${v.name}*" /s /b 2>nul`
-        : (v.scope==='top' ? `dir "${v.path}\\*${v.name}*" /b` : `dir "${v.path}\\*${v.name}*" /s /b`) },
+        : (v.scope==='top' ? `dir "${winPath(v.path)}\\*${v.name}*" /b` : `dir "${winPath(v.path)}\\*${v.name}*" /s /b`) },
     powershell:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `Get-PSDrive -PSProvider FileSystem | ForEach-Object { Get-ChildItem -Path $_.Root -Filter *${v.name}* -Recurse -ErrorAction SilentlyContinue }`
@@ -765,9 +835,9 @@ const GENERATORS = [
   }},
   { id:'delete-ext', label:'Delete all files with an extension', cat:'Files', shells:{
     cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
-      build:v=> v.scope==='top' ? `del "${v.path}\\*.${v.ext}"` : `for /r "${v.path}" %f in (*.${v.ext}) do @del "%f"` },
+      build:v=> v.scope==='top' ? `del "${winPath(v.path)}\\*.${v.ext}"` : `for /r "${v.path}" %f in (*.${v.ext}) do @del "%f"` },
     powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
-      build:v=> v.scope==='top' ? `Remove-Item -Path "${v.path}\\*.${v.ext}" -Force` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
+      build:v=> v.scope==='top' ? `Remove-Item -Path "${winPath(v.path)}\\*.${v.ext}" -Force` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
     unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS_SAFE},SCOPE_PARAM],
       build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -name "*.${v.ext}" -delete` : `find ${v.path} -name "*.${v.ext}" -delete` },
   }},
@@ -776,7 +846,7 @@ const GENERATORS = [
       build:v=> v.path===ALL_DRIVES
         ? `for %d in (C D E F G H) do @if exist %d:\\ findstr /S /I /C:"${v.text}" "%d:\\*.*" 2>nul`
         : (v.scope==='top'
-          ? `findstr /I /C:"${v.text}" "${v.path}\\*.*"`
+          ? `findstr /I /C:"${v.text}" "${winPath(v.path)}\\*.*"`
           : `pushd "${v.path}" && findstr /S /I /C:"${v.text}" *.* & popd`) },
     powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
@@ -1133,6 +1203,8 @@ const SECTION_META = {
   git: {label:'Git', color:'var(--git)', sub:'Version control commands — from the daily-driver basics to the ones you look up mid-panic during a merge conflict.'},
   docker: {label:'Docker', color:'var(--docker)', sub:'Container and Compose commands — running, inspecting, and cleaning up what Docker Desktop leaves behind.'},
   setup: {label:'Install & setup', color:'var(--setup)', sub:'Getting Python, Node, Git, and the rest of your toolkit onto a fresh machine. One bootstrap step below (winget or Chocolatey) is the gate — once either exists, everything after it runs from the command line with no browser.'},
+  reg: {label:'Registry', color:'var(--reg)', sub:'⚠️ Disclaimer: the Windows Registry has no Recycle Bin — an incorrect key change can stop Windows or an installed app from starting. Always export the key you are about to touch first (see the Backup & safety tier below), only run commands or .reg files you understand, and prefer a restore point before wide-reaching changes. These commands read and modify Windows configuration only — this reference does not cover software activation, license bypass, or third-party "activator" scripts.'},
+  outlook: {label:'Outlook / PST', color:'var(--outlook)', sub:'One place for the recurring "Outlook is acting up" toolbox — finding and sizing PST/OST files, repairing a damaged PST with the built-in Inbox Repair Tool, and the startup switches that reset a broken profile or view. Back up a PST before repairing it: scanpst.exe can discard unreadable items rather than recovering them.'},
 };
 
 let activeSection = 'all';
@@ -1312,6 +1384,8 @@ function setStats(){
   document.getElementById('statGit').textContent = DATA.filter(i=>i.s==='git').length;
   document.getElementById('statDocker').textContent = DATA.filter(i=>i.s==='docker').length;
   document.getElementById('statSetup').textContent = DATA.filter(i=>i.s==='setup').length;
+  document.getElementById('statReg').textContent = DATA.filter(i=>i.s==='reg').length;
+  document.getElementById('statOutlook').textContent = DATA.filter(i=>i.s==='outlook').length;
   document.getElementById('cAll').textContent = DATA.length;
   document.getElementById('cCmd').textContent = DATA.filter(i=>i.s==='cmd').length;
   document.getElementById('cPs').textContent = DATA.filter(i=>i.s==='powershell').length;
@@ -1320,6 +1394,8 @@ function setStats(){
   document.getElementById('cGit').textContent = DATA.filter(i=>i.s==='git').length;
   document.getElementById('cDocker').textContent = DATA.filter(i=>i.s==='docker').length;
   document.getElementById('cSetup').textContent = DATA.filter(i=>i.s==='setup').length;
+  document.getElementById('cReg').textContent = DATA.filter(i=>i.s==='reg').length;
+  document.getElementById('cOutlook').textContent = DATA.filter(i=>i.s==='outlook').length;
 }
 
 // ---------- hero typer ----------
