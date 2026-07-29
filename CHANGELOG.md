@@ -2,6 +2,24 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.9 - Office-hours-aware schedule + clickable backup reminder
+
+* **Schedule fix**: updated "Schedule an automatic recurring backup" to actually reflect office hours (9:30 AM–6:30 PM, closed Sunday) instead of a generic `/sc daily` guess — now `/sc weekly /d MON,TUE,WED,THU,FRI,SAT /st 19:00`, skipping Sunday and running a half-hour after close so Outlook is reliably shut down first.
+* **New tier**: added "Reminders" to Outlook / PST (2 entries, 25 total in the section) — a PowerShell popup that doubles as the reminder and the launcher: a Yes/No message box that runs the robocopy backup immediately if Yes is clicked, no separate step to go find the backup command. Second entry schedules that popup script with `schtasks`, timed near end of day (6:15 PM) rather than after hours, since an unattended popup that fires when nobody's logged in never actually gets seen or clicked.
+
+## v2.8 - NAS backup destination with local fallback
+
+* Added 3 entries to the Outlook / PST "Backup to a set location" tier (7 total in the tier, 23 in the section) covering backing up to a network location instead of only a local folder.
+* `if exist "%NAS%\" (...) else (...)` batch pattern: checks whether the NAS share is currently reachable before robocopying to it, and drops back to a local folder automatically if not — covers laptops that only see the office NAS on the office network/VPN.
+* PowerShell equivalent using `Test-Path` on the UNC path to pick the destination, noted as the more reliable check to script against since it resolves quickly rather than potentially hanging like a full `ping` can when a NAS is off rather than merely unreachable.
+* `net use` entry for authenticating to a credentialed NAS share ahead of time — called out specifically because a scheduled task with no interactive session will silently fall back to local every run if the share was never authenticated first.
+
+## v2.7 - "Backup to a set location" tier for Outlook / PST
+
+* Added a dedicated **Backup to a set location** tier to the Outlook / PST section (4 new entries, 20 total in the section), sitting between Diagnose first and Repair so the flow is now look → back up → repair → reset → manage profile.
+* Covers: a one-off `copy` to a fixed backup folder; a `robocopy` version using `/B` backup-mode privileges with a timestamped rename so each day's backup is kept instead of overwritten; a PowerShell `Copy-Item` equivalent that bakes today's date into the destination filename; and a `schtasks` example that wraps the robocopy backup in a recurring scheduled task so it runs automatically without needing to be remembered.
+* Each entry notes that Outlook locks the PST exclusively while running, so these only work with Outlook closed (or scheduled for a time it reliably is).
+
 ## v2.6 - Outlook / PST section (16 commands, 4 tiers)
 
 * **New section**: added "Outlook / PST" as a first-class section, wired the same way as every other section — sidebar button, hero stat (`statOutlook`), section count (`cOutlook`), and a dedicated `--outlook` theme accent color.
