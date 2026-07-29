@@ -2,7 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
-## v2.10 - Fluid container width + tab favicon
+## v3.1 - "Third-party & cross-platform recovery" tier for Outlook / PST
+
+* Added a new tier to the Outlook / PST section (5 new entries, 30 total in the section) covering the gap left when scanpst.exe simply can't open a file at all, rather than repairing one it can open: `readpst`/`lspst` (libpst, run from WSL/Linux — extracts mail with an independent parser that often succeeds where Outlook and scanpst both refuse the file, plus a debug mode to see exactly where parsing fails), `pffinfo` (libpff — checks PST encryption type before a repair attempt fails with no useful reason), `esentutl /g` and `/p` (the correct low-level repair path for `.ost` files specifically, since OST is an ESE database and a genuinely different format from PST — calls out that esentutl can't read a real `.pst` at all), and `New-MailboxExportRequest` (Exchange PowerShell — sidesteps a locally unrecoverable PST by pulling a fresh copy straight from the server-side mailbox instead).
+* Sits between "Repair (Inbox Repair Tool)" and "Reset & recovery switches" so the flow now reads: look → back up → repair (built-in) → repair/recover (third-party, if built-in can't even open it) → reset → manage profile.
+* Updated the section subtitle (`SECTION_META.outlook.sub`) to mention the fallback path. No changes needed to hero stat / section count wiring — both are computed from `DATA.filter(...)`, so the new entries count themselves automatically.
+
+## v3.0 - Fluid container width + tab favicon
 
 * **Layout fix**: `.header-inner`, `.hero`, `.layout`, and `footer` all had `max-width:1280px` hardcoded, so on anything wider than ~1280px (e.g. a 1920px monitor) the page left large fixed margins on both sides regardless of actual screen size. Replaced all four with a single `--container-max: min(1680px, 94vw)` custom property — width now scales with the viewport instead of hard-capping at one breakpoint, while the `1680px` ceiling keeps line lengths and card rows from stretching out uncomfortably on ultrawide/4K displays. The `.cards` grid (`repeat(auto-fill, minmax(300px, 1fr))`) needed no change — it already packs in more columns automatically as its container widens.
 * **Missing favicon**: the page had no `<link rel="icon">` at all, so browser tabs fell back to a blank/generic icon. Added an inline SVG favicon as a `data:` URI (no extra file to host) — a dark rounded-square tile with an amber `>` and light `_`, echoing the site's own `> shell //` logo mark.
