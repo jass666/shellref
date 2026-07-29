@@ -1052,7 +1052,7 @@ function renderGenerator(){
       </label>`;
     } else {
       const picksHtml = p.drivePicks ? `<div class="gen-drive-picks">${
-        p.drivePicks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${escapeHtml(p.k)}','${escapeHtml(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
+        p.drivePicks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${jsAttr(p.k)}','${jsAttr(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
       }</div>` : '';
       const displayVal = val === ALL_DRIVES ? 'All drives (entire system)' : val;
       fieldsHtml += `<label class="gen-field">
@@ -1140,6 +1140,13 @@ let query = '';
 
 function escapeHtml(s){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Escapes a value for safe embedding inside a single-quoted JS string literal
+// within an inline onclick="..." attribute (handles backslashes like "C:\" and
+// any stray single quotes, neither of which escapeHtml touches).
+function jsAttr(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
 
 function matches(item){

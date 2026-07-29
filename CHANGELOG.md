@@ -2,6 +2,10 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v2.3 - Fix unclickable drive-letter chips
+
+* **Bug fix**: the drive quick-pick chips added in v2.2 used inline `onclick="onGenQuickPick('path','C:\')"` handlers built with `escapeHtml()`, which only escapes `&`/`<`/`>`. The trailing backslash in `C:\`, `D:\`, `E:\`, `F:\` escaped the closing `'` inside the inline JS string, breaking the attribute's parse and silently no-opping the click — the `C`/`D`/`E`/`F` chips did nothing, while backslash-free chips like "All drives" worked fine. Added a `jsAttr()` helper that escapes backslashes and stray quotes for safe embedding in an inline single-quoted JS string, and swapped it in for the two values passed to `onGenQuickPick`.
+
 ## v2.2 - Drive quick-picks in the Command Generator
 
 * **Gap fix**: the "Folder to search" field in every generator task was a plain text box — there was no direct way to target a whole drive (C:, D:, E:, F:) or the entire machine without typing a path by hand. Added a row of quick-pick chips under the field on every task that touches a folder tree: find by extension, find by name, find recently modified, find large files, delete by extension, search text in files, and check folder size.
