@@ -154,5 +154,5 @@ All notable changes to the Command Reference static site, tracked in order.
 * Kept the project as a no-build static site that can be opened directly in a browser.
 * Deployed to Cloudflare Pages as `shellref` (live at shellref.pages.dev).
 * Added Cloudflare static assets configuration through `wrangler.jsonc` with project name `shellref`.
-* Added local push helpers: `Push.ps1` and `Push_Launcher.bat`.
+* Added push helpers: `Push.ps1` and `Push_Launcher.bat`.
 * Added this README and changelog for project handoff and future maintenance.
