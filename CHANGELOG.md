@@ -147,7 +147,7 @@ All notable changes to the Command Reference static site, tracked in order.
 
 ## v1.0 - Initial single-file reference
 
-* Built `index.html` as a complete browser-based reference for CMD, PowerShell, WSL, and Unix tools (grep, sed, awk, find, and related process/network commands).
+* Built a complete browser-based reference for CMD, PowerShell, WSL, and Unix tools (grep, sed, awk, find, and related process/network commands).
 * Organized commands by shell (CMD / PowerShell / WSL / Unix) and by tier (Basic / Useful / Advanced) within each shell.
 * Added a search bar filtering by command, description, and example text, plus a sidebar to filter by shell.
 * Added copy-to-clipboard on every command card.
