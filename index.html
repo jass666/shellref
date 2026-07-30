@@ -292,6 +292,8 @@
     white-space:pre-wrap; word-break:break-word; line-height:1.5;
   }
   .card .example .cm{ color:var(--muted-2); }
+  .card .example .example-link{ color:var(--amber); text-decoration:underline; text-decoration-color:transparent; transition:text-decoration-color .12s; }
+  .card .example .example-link:hover{ text-decoration-color:var(--amber); }
 
   .nav-divider{ height:1px; background:var(--border-soft); margin:8px 4px; }
   nav.sidebar.collapsed .nav-divider{ margin:8px 8px; }
@@ -1339,7 +1341,7 @@ function render(){
           </div>
           <p class="desc">${escapeHtml(item.desc)}</p>
           ${item.use ? `<p class="usecase"><b>Use case:</b> ${escapeHtml(item.use)}</p>` : ''}
-          <div class="example">${escapeHtml(item.ex)}<button class="copy-btn-inline" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button></div>
+          <div class="example">${/^https?:\/\//i.test(item.ex) ? `<a href="${escapeHtml(item.ex)}" target="_blank" rel="noopener noreferrer" class="example-link">${escapeHtml(item.ex)}</a>` : escapeHtml(item.ex)}<button class="copy-btn-inline" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button></div>
         </div>`;
       });
       html += `</div>`;
