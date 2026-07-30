@@ -449,7 +449,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="nav-list" id="navList">
-    <button class="nav-btn" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
+    <button class="nav-btn active" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
     <button class="nav-btn" data-target="cmd" title="Command Prompt"><span class="nav-btn-main"><span class="dot" style="background:var(--cmd)"></span><span class="label-text">Command Prompt</span></span><span class="count" id="cCmd">0</span></button>
     <button class="nav-btn" data-target="powershell" title="PowerShell"><span class="nav-btn-main"><span class="dot" style="background:var(--ps)"></span><span class="label-text">PowerShell</span></span><span class="count" id="cPs">0</span></button>
     <button class="nav-btn" data-target="wsl" title="WSL"><span class="nav-btn-main"><span class="dot" style="background:var(--wsl)"></span><span class="label-text">WSL</span></span><span class="count" id="cWsl">0</span></button>
@@ -458,7 +458,7 @@
     <button class="nav-btn" data-target="docker" title="Docker"><span class="nav-btn-main"><span class="dot" style="background:var(--docker)"></span><span class="label-text">Docker</span></span><span class="count" id="cDocker">0</span></button>
     <button class="nav-btn" data-target="reg" title="Registry"><span class="nav-btn-main"><span class="dot" style="background:var(--reg)"></span><span class="label-text">Registry</span></span><span class="count" id="cReg">0</span></button>
     <button class="nav-btn" data-target="outlook" title="Outlook / PST"><span class="nav-btn-main"><span class="dot" style="background:var(--outlook)"></span><span class="label-text">Outlook / PST</span></span><span class="count" id="cOutlook">0</span></button>
-    <button class="nav-btn active" data-target="all" title="All commands"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">All commands</span></span><span class="count" id="cAll">0</span></button>
+    <button class="nav-btn" data-target="all" title="All commands"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">All commands</span></span><span class="count" id="cAll">0</span></button>
     <div class="nav-divider"></div>
     <button class="nav-btn" data-target="generator" title="Command Generator"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Command generator</span></span></button>
     <button class="nav-btn" data-target="faq" title="FAQ for beginners"><span class="nav-btn-main"><span class="dot" style="background:var(--faq)"></span><span class="label-text">FAQ for beginners</span></span></button>
@@ -1256,7 +1256,11 @@ const SECTION_META = {
   outlook: {label:'Outlook / PST', color:'var(--outlook)', sub:'One place for the recurring "Outlook is acting up" toolbox — finding and sizing PST/OST files, repairing a damaged PST with the built-in Inbox Repair Tool (or falling through to third-party/cross-platform tools when scanpst can\'t open the file at all), and the startup switches that reset a broken profile or view. Back up a PST before repairing it: scanpst.exe can discard unreadable items rather than recovering them.'},
 };
 
-let activeSection = 'all';
+const SECTION_STORAGE_KEY = 'shellref-last-section';
+const VALID_SECTIONS = ['setup','cmd','powershell','wsl','unix','git','docker','reg','outlook','all','generator','faq'];
+let savedSection = null;
+try{ savedSection = localStorage.getItem(SECTION_STORAGE_KEY); }catch(e){}
+let activeSection = (savedSection && VALID_SECTIONS.includes(savedSection)) ? savedSection : 'setup';
 let query = '';
 
 function escapeHtml(s){
@@ -1369,10 +1373,18 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     activeSection = btn.getAttribute('data-target');
+    try{ localStorage.setItem(SECTION_STORAGE_KEY, activeSection); }catch(e){}
     render();
     window.scrollTo({top: document.querySelector('.layout').offsetTop - 70, behavior:'smooth'});
   });
 });
+
+// sync the active nav button with the restored/default section (markup hardcodes 'setup')
+(function syncActiveNavButton(){
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-target') === activeSection);
+  });
+})();
 
 // ---------- collapsible sidebar (horizontal) ----------
 const navToggle = document.getElementById('navToggle');
