@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v3.9 - New top-level "Troubleshooting & Fixes" section: the actual clutter finally moved out of Install & setup
+
+* v3.7/v3.8 never actually fixed the real complaint — v3.7 moved the wrong tiers out (Bootstrap, Package managers, Browsers, Languages & runtimes, Editors & dev tools, i.e. the actual installs), and v3.8 correctly reverted that but left the true clutter — **Drivers**, **Troubleshooting & repair**, and **Sticky Keys & accessibility popups** (20 entries) — sitting inside Install & setup, which was only ever supposed to cover getting shells/tools onto a fresh machine.
+* Added a new top-level nav section, **Troubleshooting & Fixes** (`s:'troubleshoot'`), alongside Setup, Apps, Registry, and Outlook/PST, and moved those exact 20 entries into it unchanged (re-tagged from `s:'setup'` to `s:'troubleshoot'`) across the same 3 tiers, in the same order (Drivers → Troubleshooting & repair → Sticky Keys & accessibility popups).
+* Install & setup now holds only what it was always meant to: Bootstrap, Package managers, Languages & runtimes, Editors & dev tools, Virtual environments, and Browsers — 31 entries, 6 tiers. Trimmed its subtitle to drop the "driver fixes, general troubleshooting, Sticky Keys popup" mention accordingly.
+* Added a `--troubleshoot` accent color (dark + light, red-toned to read as "something's broken" rather than "something's a fresh install"), a new hero stat box (`statTroubleshoot`, labeled "fixes"), a nav button + count (`cTroubleshoot`) placed right after Outlook / PST, and registered `troubleshoot` in `VALID_SECTIONS` so it persists correctly via the last-viewed-section localStorage key.
+* Verified the full script still parses and the split is exact: 292 total entries unchanged, 31 in Install & setup, 20 in the new Troubleshooting & Fixes, 0 leftover tagged `setup` that don't belong there.
+
 ## v3.8 - Corrected v3.7: kept Install & setup intact, new section renamed "Apps: Install & Remove"
 
 * v3.7 had moved five tiers (Bootstrap, Package managers, Browsers, Languages & runtimes, Editors & dev tools) out of **Install & setup** and into the new section — that merged two things that were meant to stay separate. Reverted: all 28 of those entries are back under `s:'setup'`, and Install & setup is restored to its original label, subtitle, and full 51-entry, 9-tier shape (Bootstrap, Package managers, Languages & runtimes, Editors & dev tools, Virtual environments, Browsers, Drivers, Troubleshooting & repair, Sticky Keys & accessibility popups).
