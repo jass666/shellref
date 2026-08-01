@@ -2,6 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v3.4 - Browsers, Drivers, Troubleshooting & repair, and Sticky Keys tiers for Install & setup
+
+* Added 23 new entries across 4 new tiers to the Install & setup section (28 → 51 entries): **Browsers** (winget/choco install of Chrome/Firefox/Edge, setting the default browser, clearing browser cache), **Drivers** (`pnputil` for finding/rescanning/listing/removing devices and drivers, Windows Update's optional-updates driver page, Device Manager shortcut, uninstall-and-reboot reinstall), **Troubleshooting & repair** (`sfc /scannow`, `DISM /RestoreHealth`, `chkdsk`, network stack reset, Explorer restart, Event Viewer, Windows Update troubleshooter, Task Manager), and **Sticky Keys & accessibility popups** (disabling the Sticky Keys / Filter Keys / Toggle Keys prompts individually or via one combined `.reg` file, plus a re-enable/undo entry).
+* The Sticky Keys tier directly targets the "Do you want to turn on Sticky Keys?" popup that fires after five Shift taps — a recurring annoyance on shared showroom/counter machines — by writing the accessibility `Flags` registry values instead of just muting the sound.
+* Updated the `setup` section subtitle (`SECTION_META.setup.sub`) to mention the new coverage. No changes needed to hero stat / section count wiring — both are computed from `DATA.filter(...)`, so the new entries count themselves automatically.
+* Verified the new `DATA` entries parse correctly as valid JS objects (no syntax issues from the added entries) before committing.
+
 ## v3.3 - Sandbox-verified fixes to three broken Outlook / PST commands
 
 * **"Find every PST/OST file" was missing the actual default PST location**: the command only searched `%userprofile%\AppData\Local\Microsoft\Outlook\*.pst` — that's the **OST** folder. Since Outlook 2010, new `.pst` files default to `%userprofile%\Documents\Outlook Files\`; AppData only holds a `.pst` left over from a pre-2010 profile that was never moved. Checking only AppData was the most common reason this command turned up nothing. Added the Documents\Outlook Files search as its own `dir` line ahead of the AppData one, and rewrote the description to explain why both locations matter. Confirmed against Microsoft's own documentation on default data-file paths.
