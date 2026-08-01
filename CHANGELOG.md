@@ -2,6 +2,37 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v3.8 - Corrected v3.7: kept Install & setup intact, new section renamed "Apps: Install & Remove"
+
+* v3.7 had moved five tiers (Bootstrap, Package managers, Browsers, Languages & runtimes, Editors & dev tools) out of **Install & setup** and into the new section — that merged two things that were meant to stay separate. Reverted: all 28 of those entries are back under `s:'setup'`, and Install & setup is restored to its original label, subtitle, and full 51-entry, 9-tier shape (Bootstrap, Package managers, Languages & runtimes, Editors & dev tools, Virtual environments, Browsers, Drivers, Troubleshooting & repair, Sticky Keys & accessibility popups).
+* The new section keeps its own content (the "Uninstall apps" tier from v3.7) but is renamed from **Install & Uninstall** (`s:'install'`) to **Apps: Install & Remove** (`s:'apps'`) so it doesn't read as a duplicate of Install & setup, and gets its own 3-entry **Install apps** tier (`winget search/install`, `winget upgrade --all`, `choco install/upgrade`) so it stands on its own instead of leaning on Setup's Package managers tier. Total: 10 entries across 2 tiers.
+* Restored Install & setup as the default landing tab (was briefly Install & Uninstall in v3.7); Apps: Install & Remove is a normal secondary tab.
+* Renamed the `--install` CSS accent to `--apps`, updated the hero stat box, "All commands" tab section list, and nav/stat count wiring (`cApps`/`statApps`) to match.
+* Verified the full script still parses and the split is correct: 292 total entries, 51 in Install & setup (unchanged from before v3.7), 10 in the new Apps: Install & Remove, 0 leftover under the old `install` key.
+
+## v3.7 - New top-level "Install & Uninstall" section, split out of Install & setup (superseded by v3.8)
+
+* Added a brand-new top-level nav section, **Install & Uninstall** (`s:'install'`), alongside Setup, Registry, and Outlook/PST rather than as a tier inside another section — matches how the Command Generator's "Apps" category (added in v3.5) already separates finding a package from everything else.
+* Moved five existing tiers into it wholesale: **Bootstrap — do this first**, **Package managers**, **Browsers**, **Languages & runtimes**, and **Editors & dev tools** (28 entries, unchanged content — just re-tagged from `s:'setup'` to `s:'install'`).
+* Added a new **Uninstall apps** tier (7 entries) to round it out: `winget uninstall`, `winget list` (find the exact ID first), `choco uninstall`, `Get-Package | Where Name -like` (catches installs winget list misses), Programs and Features (`appwiz.cpl`) for apps with no clean silent uninstaller, `msiexec /x` for scripted MSI removal, and `Get-AppxPackage | Remove-AppxPackage` for pre-installed Store/UWP bloatware.
+* The old **Install & setup** section is renamed **Setup & troubleshooting** and now holds only what didn't move: Virtual environments, Drivers, Troubleshooting & repair, and Sticky Keys & accessibility popups (25 entries). Updated its subtitle to point installs/uninstalls at the new section.
+* Install & Uninstall is now the default landing tab (previously Setup) since it covers the more common day-one task; added its section to the "All commands" tab's section list, added a `--install` accent color (dark + light), a new hero stat box, and wired up its nav count/hero stat — all computed automatically from `DATA.filter(...)`.
+* Verified the full script still parses and the entry counts split correctly (33 in Install & Uninstall, 25 in Setup & troubleshooting, 289 total) before committing.
+
+## v3.6 - Fixed copy button silently failing (generator, history, and reference cards)
+
+* **Bug**: all three copy buttons (`doCopy` on reference cards, `copyGenOutput` in the Command Generator, `onHistoryCopy` in Recent commands) called `navigator.clipboard.writeText()` with no `.catch()`. That call rejects — silently, with nothing shown to the user — whenever the page isn't focused at the moment of the click, the site isn't served over HTTPS/localhost (`window.isSecureContext` is false), or the browser withholds clipboard permission. The button just did nothing, which is what made the generator's copy button look broken.
+* **Fix**: added a shared `copyToClipboard(text)` helper. It uses the async Clipboard API when available and the context is secure, and falls back to a hidden-textarea + `document.execCommand('copy')` otherwise or if the async call rejects. Added `showCopyFeedback(btn, ok)` so a real failure now shows "copy failed" on the button instead of nothing happening.
+* All three copy call sites (`doCopy`, `copyGenOutput`, `onHistoryCopy`) now go through the shared helper and show explicit success/failure feedback.
+* Verified the updated script still parses cleanly end to end.
+
+## v3.5 - "Apps" category in the Command Generator: find a package by app name, then uninstall it
+
+* Added a new **Apps** category to the Command Generator with two tasks that chain together: **"Find a package's exact name (to uninstall it)"** takes just a plain app name (e.g. "chrome") and builds a search command per shell — `winget list "<app>"` + `choco list --local-only "<app>"` on CMD, `winget list "<app>"` + `Get-Package -Name "*<app>*"` on PowerShell, `apt list --installed | grep -i "<app>"` on WSL/Unix — so the exact package ID/name can be found without already knowing it.
+* **"Uninstall a package by name"** takes that exact ID (winget App ID like `Google.Chrome`, or the WSL/Unix package name) and builds the matching removal command: `winget uninstall --id "<id>" -e` on CMD/PowerShell, `sudo apt remove "<name>"` on WSL/Unix.
+* The two-step split exists because most uninstall commands need an exact ID, not the friendly app name someone actually remembers — this makes "I want to remove that browser" a two-field generator flow instead of a manual `winget list` first.
+* Verified both new generator tasks parse and their `build()` functions produce the expected command strings before committing.
+
 ## v3.4 - Browsers, Drivers, Troubleshooting & repair, and Sticky Keys tiers for Install & setup
 
 * Added 23 new entries across 4 new tiers to the Install & setup section (28 → 51 entries): **Browsers** (winget/choco install of Chrome/Firefox/Edge, setting the default browser, clearing browser cache), **Drivers** (`pnputil` for finding/rescanning/listing/removing devices and drivers, Windows Update's optional-updates driver page, Device Manager shortcut, uninstall-and-reboot reinstall), **Troubleshooting & repair** (`sfc /scannow`, `DISM /RestoreHealth`, `chkdsk`, network stack reset, Explorer restart, Event Viewer, Windows Update troubleshooter, Task Manager), and **Sticky Keys & accessibility popups** (disabling the Sticky Keys / Filter Keys / Toggle Keys prompts individually or via one combined `.reg` file, plus a re-enable/undo entry).
