@@ -224,7 +224,12 @@
   nav.sidebar.collapsed .nav-label{ justify-content:center; }
   nav.sidebar.collapsed .nav-label .label-text{ display:none; }
   nav.sidebar.collapsed .nav-label svg{ transform:rotate(180deg); }
-  .nav-list{ display:flex; flex-direction:column; gap:4px; }
+  .nav-list{
+    display:flex; flex-direction:column; gap:4px;
+    max-height:calc(100vh - 150px); overflow-y:auto; overflow-x:hidden;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .nav-list::-webkit-scrollbar{ display:none; }
   .nav-btn{
     display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
     padding:9px 10px; border-radius:7px; border:1px solid transparent;
@@ -341,6 +346,35 @@
   }
   .gen-task-btn:hover{ background:var(--panel-hover); color:var(--text); }
   .gen-task-btn.active{ background:var(--panel); border-color:var(--border); color:var(--text); font-weight:500; }
+
+  .gen-mode-toggle{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .gen-mode-btn{
+    background:transparent; border:1px solid var(--border); color:var(--muted);
+    padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif;
+    transition:all .12s; display:flex; align-items:center; gap:6px;
+  }
+  .gen-mode-btn:hover{ color:var(--text); border-color:var(--muted-2); }
+  .gen-mode-btn.active{ background:var(--panel); border-color:var(--amber); color:var(--text); font-weight:600; }
+  .gen-mode-count{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted-2); }
+  .gen-mode-btn.active .gen-mode-count{ color:var(--amber); }
+
+  .gen-tasks-browse{ display:flex; flex-direction:column; gap:8px; }
+  .gen-browse-search{
+    width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+    padding:8px 10px; border-radius:7px; font-family:'JetBrains Mono', monospace; font-size:12.5px; outline:none;
+  }
+  .gen-browse-search:focus{ border-color:var(--amber); }
+  .gen-browse-list{ display:flex; flex-direction:column; gap:2px; max-height:560px; overflow-y:auto; padding-right:4px; }
+  .gen-browse-empty{ font-size:12px; color:var(--muted-2); padding:10px 4px; }
+  .gen-task-shell-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; flex-shrink:0; }
+
+  .gen-browse-selected{ margin-bottom:14px; }
+  .gen-browse-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+  .gen-browse-cmd{ font-family:'JetBrains Mono', monospace; font-size:14.5px; font-weight:600; color:var(--text); word-break:break-word; }
+  .gen-browse-selected .desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; }
+  .gen-browse-selected .usecase{ font-size:12px; color:var(--muted-2); line-height:1.5; margin:0 0 8px; font-style:italic; }
+  .gen-browse-noparams{ font-size:12.5px; color:var(--muted-2); padding:10px; border:1px dashed var(--border); border-radius:8px; margin-bottom:14px; }
+  .gen-browse-placeholder{ font-size:13px; color:var(--muted-2); padding:30px 10px; text-align:center; }
 
   .gen-build{
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
@@ -804,6 +838,7 @@ const DATA = [
 {s:'outlook', t:'Profile management', cmd:'outlook.exe /profiles', desc:'Opens the "Choose Profile" picker on startup regardless of the current "always use this profile" setting — a quick way to switch profiles for one session without changing the default.', use:'Test a newly created profile once without making it the everyday default yet.', ex:'outlook.exe /profiles', kw:'outlook choose profile picker switch profile temporarily'},
 {s:'outlook', t:'Profile management', cmd:'outlook.exe /profile "ProfileName"', desc:'Starts Outlook directly with a specific named profile, skipping the picker entirely — quote the name if it contains spaces.', use:'A shared machine has one Windows login but multiple people\'s Outlook profiles — give each person their own shortcut.', ex:'outlook.exe /profile "Jaswant"', kw:'outlook load specific profile shortcut named profile startup'}
 ];
+DATA.forEach((item,i)=>{ item._id = i; });
 
 // ---------- command generator ----------
 // Each task defines, per shell, the input fields it needs and a build(values) function
@@ -978,6 +1013,81 @@ const GENERATORS = [
 const GEN_SHELL_LABELS = { cmd:'Command Prompt', powershell:'PowerShell', unix:'WSL / Unix' };
 const GEN_SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(--unix)' };
 
+// ---------- generator: browse & build from every reference command ----------
+// Beyond the curated multi-shell recipes above, the generator can build from
+// literally any of the 290+ reference commands. Most are already a single
+// ready-to-copy command with nothing to fill in; a smaller set use <Token>
+// placeholders in their `cmd` field (e.g. `wsl --install -d <Distro>`) — for
+// those, this mode renders one text input per unique token and substitutes it
+// live into the output, the same way the curated recipes do.
+let genMode = 'recipes'; // 'recipes' | 'browse'
+let genBrowseQuery = '';
+let genBrowseId = null; // matches a DATA[]._id
+let genBrowseValues = {}; // token -> value, for the currently selected item
+
+function extractTokens(cmdStr){
+  const seen = new Set(); const out = [];
+  for(const m of cmdStr.matchAll(/<([^<>]+)>/g)){
+    if(!seen.has(m[1])){ seen.add(m[1]); out.push(m[1]); }
+  }
+  return out;
+}
+
+function currentBrowseItem(){
+  return genBrowseId===null ? null : (DATA.find(i=>i._id===genBrowseId) || null);
+}
+
+function currentBrowseOutput(){
+  const item = currentBrowseItem();
+  if(!item) return '';
+  const tokens = extractTokens(item.cmd);
+  if(!tokens.length) return item.ex || item.cmd;
+  let out = item.cmd;
+  tokens.forEach(tok=>{
+    const val = (genBrowseValues[tok] || '').trim();
+    if(val) out = out.split(`<${tok}>`).join(val);
+  });
+  return out;
+}
+
+function genBrowseMatches(item){
+  if(!genBrowseQuery) return true;
+  const hay = `${item.cmd} ${item.desc} ${item.kw||''} ${item.ex}`.toLowerCase();
+  return hay.includes(genBrowseQuery);
+}
+
+function onGenModeClick(mode){
+  genMode = mode;
+  if(mode==='browse' && genBrowseId===null && DATA.length) genBrowseId = DATA[0]._id;
+  renderGenerator();
+}
+
+function onGenBrowseSearch(e){
+  genBrowseQuery = e.target.value.trim().toLowerCase();
+  renderGenerator();
+}
+
+function onGenBrowseSelect(id){
+  genBrowseId = id;
+  genBrowseValues = {};
+  renderGenerator();
+}
+
+function onGenBrowseInput(inputEl){
+  const tok = inputEl.getAttribute('data-tok');
+  genBrowseValues[tok] = inputEl.value;
+  const el = document.getElementById('genBrowseOutput');
+  if(el) el.textContent = currentBrowseOutput();
+}
+
+function copyGenBrowseOutput(btn){
+  const text = currentBrowseOutput();
+  copyToClipboard(text).then(()=>{
+    showCopyFeedback(btn, true);
+    pushGenBrowseHistory();
+  }).catch(()=>showCopyFeedback(btn, false));
+}
+
 // ---------- generator history (persisted across visits) ----------
 const GEN_HISTORY_KEY = 'shellref-gen-history';
 const GEN_HISTORY_MAX = 50;
@@ -988,38 +1098,52 @@ function saveGenHistory(){
   try{ localStorage.setItem(GEN_HISTORY_KEY, JSON.stringify(genHistory)); }catch(e){}
 }
 
-function pushGenHistory(){
-  const task = GENERATORS.find(t=>t.id===genState.taskId);
-  const command = currentGenOutput();
-  if(!task || !command) return;
-  // if the most recent entry is the exact same command, just bump its time instead of duplicating
+function pushGenHistoryEntry(entry){
   const top = genHistory[0];
-  if(top && top.taskId===genState.taskId && top.shell===genState.shell && top.command===command){
+  const sameAsTop = top && top.command===entry.command && top.source===entry.source &&
+    (entry.source==='browse' ? top.itemId===entry.itemId : (top.taskId===entry.taskId && top.shell===entry.shell));
+  if(sameAsTop){
     top.ts = Date.now();
     saveGenHistory();
     updateGenHistoryUI();
     return;
   }
-  genHistory.unshift({
-    id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
-    taskId: genState.taskId,
-    label: task.label,
-    shell: genState.shell,
-    values: {...genState.values},
-    command,
-    ts: Date.now()
-  });
+  genHistory.unshift({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), ts: Date.now(), ...entry });
   if(genHistory.length > GEN_HISTORY_MAX) genHistory.length = GEN_HISTORY_MAX;
   saveGenHistory();
   updateGenHistoryUI();
 }
 
+function pushGenHistory(){
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const command = currentGenOutput();
+  if(!task || !command) return;
+  pushGenHistoryEntry({ source:'recipe', taskId: genState.taskId, label: task.label, shell: genState.shell, values: {...genState.values}, command });
+}
+
+function pushGenBrowseHistory(){
+  const item = currentBrowseItem();
+  const command = currentBrowseOutput();
+  if(!item || !command) return;
+  pushGenHistoryEntry({ source:'browse', itemId: item._id, label: item.cmd, shell: item.sh || null, values: {...genBrowseValues}, command });
+}
+
 function onHistoryUse(id){
   const entry = genHistory.find(h=>h.id===id);
   if(!entry) return;
-  const task = GENERATORS.find(t=>t.id===entry.taskId);
-  if(!task || !task.shells[entry.shell]) return;
-  genState = { taskId: entry.taskId, shell: entry.shell, values: {...entry.values} };
+  if(entry.source === 'browse'){
+    const item = DATA.find(i=>i._id===entry.itemId);
+    if(!item) return;
+    genMode = 'browse';
+    genBrowseId = entry.itemId;
+    genBrowseValues = {...entry.values};
+    genBrowseQuery = '';
+  } else {
+    const task = GENERATORS.find(t=>t.id===entry.taskId);
+    if(!task || !task.shells[entry.shell]) return;
+    genMode = 'recipes';
+    genState = { taskId: entry.taskId, shell: entry.shell, values: {...entry.values} };
+  }
   renderGenerator();
 }
 
@@ -1063,7 +1187,7 @@ function renderGenHistoryHtml(){
       <div class="gen-history-main">
         <div class="gen-history-top">
           <span class="gen-history-label">${escapeHtml(h.label)}</span>
-          <span class="gen-history-shell" style="--tab-accent:${GEN_SHELL_COLORS[h.shell]}">${GEN_SHELL_LABELS[h.shell]}</span>
+          ${h.shell ? `<span class="gen-history-shell" style="--tab-accent:${GEN_SHELL_COLORS[h.shell]}">${GEN_SHELL_LABELS[h.shell]}</span>` : ''}
           <span class="gen-history-time">${formatRelTime(h.ts)}</span>
         </div>
         <div class="gen-history-cmd">${escapeHtml(h.command)}</div>
@@ -1150,55 +1274,58 @@ function renderFaq(){
 
 function renderGenerator(){
   if(!genState.taskId) initGenState(GENERATORS[0].id);
+  if(genMode==='browse' && genBrowseId===null && DATA.length) genBrowseId = DATA[0]._id;
   const main = document.getElementById('main');
 
-  const cats = [...new Set(GENERATORS.map(g=>g.cat))];
-  let taskListHtml = '';
-  cats.forEach(cat=>{
-    taskListHtml += `<div class="gen-cat-label">${escapeHtml(cat)}</div>`;
-    GENERATORS.filter(g=>g.cat===cat).forEach(g=>{
-      const active = g.id === genState.taskId ? ' active' : '';
-      taskListHtml += `<button type="button" class="gen-task-btn${active}" onclick="onGenTaskClick('${g.id}')">${escapeHtml(g.label)}</button>`;
+  const modeToggleHtml = `<div class="gen-mode-toggle">
+    <button type="button" class="gen-mode-btn${genMode==='recipes'?' active':''}" onclick="onGenModeClick('recipes')">Quick recipes</button>
+    <button type="button" class="gen-mode-btn${genMode==='browse'?' active':''}" onclick="onGenModeClick('browse')">Browse all commands <span class="gen-mode-count">${DATA.length}</span></button>
+  </div>`;
+
+  let layoutHtml;
+  if(genMode === 'recipes'){
+    const cats = [...new Set(GENERATORS.map(g=>g.cat))];
+    let taskListHtml = '';
+    cats.forEach(cat=>{
+      taskListHtml += `<div class="gen-cat-label">${escapeHtml(cat)}</div>`;
+      GENERATORS.filter(g=>g.cat===cat).forEach(g=>{
+        const active = g.id === genState.taskId ? ' active' : '';
+        taskListHtml += `<button type="button" class="gen-task-btn${active}" onclick="onGenTaskClick('${g.id}')">${escapeHtml(g.label)}</button>`;
+      });
     });
-  });
 
-  const task = GENERATORS.find(t=>t.id===genState.taskId);
-  const shellKeys = Object.keys(task.shells);
-  let tabsHtml = '';
-  shellKeys.forEach(sk=>{
-    const active = sk === genState.shell ? ' active' : '';
-    tabsHtml += `<button type="button" class="gen-shell-tab${active}" style="--tab-accent:${GEN_SHELL_COLORS[sk]}" onclick="onGenShellClick('${sk}')">${GEN_SHELL_LABELS[sk]}</button>`;
-  });
+    const task = GENERATORS.find(t=>t.id===genState.taskId);
+    const shellKeys = Object.keys(task.shells);
+    let tabsHtml = '';
+    shellKeys.forEach(sk=>{
+      const active = sk === genState.shell ? ' active' : '';
+      tabsHtml += `<button type="button" class="gen-shell-tab${active}" style="--tab-accent:${GEN_SHELL_COLORS[sk]}" onclick="onGenShellClick('${sk}')">${GEN_SHELL_LABELS[sk]}</button>`;
+    });
 
-  const conf = task.shells[genState.shell];
-  let fieldsHtml = '';
-  conf.params.forEach(p=>{
-    const val = genState.values[p.k] !== undefined ? genState.values[p.k] : '';
-    if(p.type === 'select'){
-      const optsHtml = p.options.map(o=>`<option value="${escapeHtml(o.v)}"${o.v===val?' selected':''}>${escapeHtml(o.l)}</option>`).join('');
-      fieldsHtml += `<label class="gen-field">
-        <span class="gen-field-label">${escapeHtml(p.l)}</span>
-        <select class="gen-field-input gen-field-select" data-key="${escapeHtml(p.k)}" onchange="onGenInput(this)">${optsHtml}</select>
-      </label>`;
-    } else {
-      const picksHtml = p.drivePicks ? `<div class="gen-drive-picks">${
-        p.drivePicks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${jsAttr(p.k)}','${jsAttr(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
-      }</div>` : '';
-      const displayVal = val === ALL_DRIVES ? 'All drives (entire system)' : val;
-      fieldsHtml += `<label class="gen-field">
-        <span class="gen-field-label">${escapeHtml(p.l)}</span>
-        <input type="text" class="gen-field-input" data-key="${escapeHtml(p.k)}" placeholder="${escapeHtml(p.ph||'')}" value="${escapeHtml(displayVal)}" oninput="onGenInput(this)" autocomplete="off" spellcheck="false">
-        ${picksHtml}
-      </label>`;
-    }
-  });
+    const conf = task.shells[genState.shell];
+    let fieldsHtml = '';
+    conf.params.forEach(p=>{
+      const val = genState.values[p.k] !== undefined ? genState.values[p.k] : '';
+      if(p.type === 'select'){
+        const optsHtml = p.options.map(o=>`<option value="${escapeHtml(o.v)}"${o.v===val?' selected':''}>${escapeHtml(o.l)}</option>`).join('');
+        fieldsHtml += `<label class="gen-field">
+          <span class="gen-field-label">${escapeHtml(p.l)}</span>
+          <select class="gen-field-input gen-field-select" data-key="${escapeHtml(p.k)}" onchange="onGenInput(this)">${optsHtml}</select>
+        </label>`;
+      } else {
+        const picksHtml = p.drivePicks ? `<div class="gen-drive-picks">${
+          p.drivePicks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${jsAttr(p.k)}','${jsAttr(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
+        }</div>` : '';
+        const displayVal = val === ALL_DRIVES ? 'All drives (entire system)' : val;
+        fieldsHtml += `<label class="gen-field">
+          <span class="gen-field-label">${escapeHtml(p.l)}</span>
+          <input type="text" class="gen-field-input" data-key="${escapeHtml(p.k)}" placeholder="${escapeHtml(p.ph||'')}" value="${escapeHtml(displayVal)}" oninput="onGenInput(this)" autocomplete="off" spellcheck="false">
+          ${picksHtml}
+        </label>`;
+      }
+    });
 
-  main.innerHTML = `<div class="gen-wrap">
-    <div class="gen-intro">
-      <h2>Command generator</h2>
-      <p class="section-sub">Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command.</p>
-    </div>
-    <div class="gen-layout">
+    layoutHtml = `<div class="gen-layout">
       <div class="gen-tasks">${taskListHtml}</div>
       <div class="gen-build" style="--card-accent:${GEN_SHELL_COLORS[genState.shell]}">
         <div class="gen-shell-tabs">${tabsHtml}</div>
@@ -1211,7 +1338,75 @@ function renderGenerator(){
           <div class="example gen-output" id="genOutput">${escapeHtml(currentGenOutput())}</div>
         </div>
       </div>
+    </div>`;
+  } else {
+    const filtered = DATA.filter(genBrowseMatches);
+    let browseListHtml = '';
+    Object.keys(SECTION_META).forEach(secKey=>{
+      const secItems = filtered.filter(i=>i.s===secKey);
+      if(!secItems.length) return;
+      browseListHtml += `<div class="gen-cat-label">${escapeHtml(SECTION_META[secKey].label)}</div>`;
+      secItems.forEach(item=>{
+        const active = item._id === genBrowseId ? ' active' : '';
+        const dot = item.sh ? `<span class="gen-task-shell-dot" style="background:${SHELL_COLORS[item.sh]}"></span>` : '';
+        browseListHtml += `<button type="button" class="gen-task-btn${active}" onclick="onGenBrowseSelect(${item._id})">${dot}${escapeHtml(item.cmd)}</button>`;
+      });
+    });
+    if(!filtered.length) browseListHtml = `<div class="gen-browse-empty">No commands match "${escapeHtml(genBrowseQuery)}".</div>`;
+
+    const selectedItem = currentBrowseItem();
+    let buildHtml;
+    if(!selectedItem){
+      buildHtml = `<div class="gen-browse-placeholder">Pick a command from the list to build it.</div>`;
+    } else {
+      const tokens = extractTokens(selectedItem.cmd);
+      let tokenFieldsHtml = '';
+      tokens.forEach(tok=>{
+        const val = genBrowseValues[tok] || '';
+        tokenFieldsHtml += `<label class="gen-field">
+          <span class="gen-field-label">${escapeHtml(tok)}</span>
+          <input type="text" class="gen-field-input" data-tok="${escapeHtml(tok)}" placeholder="${escapeHtml(tok)}" value="${escapeHtml(val)}" oninput="onGenBrowseInput(this)" autocomplete="off" spellcheck="false">
+        </label>`;
+      });
+      const badge = selectedItem.sh
+        ? `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[selectedItem.sh]}">${SHELL_LABELS[selectedItem.sh]}</span>`
+        : `<span class="shell-tag" style="--shell-color:${SECTION_META[selectedItem.s].color}">${SECTION_META[selectedItem.s].label}</span>`;
+      buildHtml = `
+        <div class="gen-browse-selected">
+          <div class="gen-browse-top">
+            <span class="gen-browse-cmd">${escapeHtml(selectedItem.cmd)}</span>
+            ${badge}
+          </div>
+          <p class="desc">${escapeHtml(selectedItem.desc)}</p>
+          ${selectedItem.use ? `<p class="usecase"><b>Use case:</b> ${escapeHtml(selectedItem.use)}</p>` : ''}
+        </div>
+        ${tokens.length ? `<div class="gen-fields">${tokenFieldsHtml}</div>` : `<div class="gen-browse-noparams">No parameters to fill in — this command is ready as-is.</div>`}
+        <div class="gen-output-wrap">
+          <div class="gen-output-top">
+            <span class="gen-output-label">Generated command</span>
+            <button type="button" class="copy-btn" onclick="copyGenBrowseOutput(this)">copy</button>
+          </div>
+          <div class="example gen-output" id="genBrowseOutput">${escapeHtml(currentBrowseOutput())}</div>
+        </div>`;
+    }
+
+    const accent = selectedItem ? (selectedItem.sh ? SHELL_COLORS[selectedItem.sh] : SECTION_META[selectedItem.s].color) : 'var(--border)';
+    layoutHtml = `<div class="gen-layout">
+      <div class="gen-tasks gen-tasks-browse">
+        <input type="text" class="gen-browse-search" placeholder="Search all ${DATA.length} commands…" value="${escapeHtml(genBrowseQuery)}" oninput="onGenBrowseSearch(event)" autocomplete="off" spellcheck="false">
+        <div class="gen-browse-list">${browseListHtml}</div>
+      </div>
+      <div class="gen-build" style="--card-accent:${accent}">${buildHtml}</div>
+    </div>`;
+  }
+
+  main.innerHTML = `<div class="gen-wrap">
+    <div class="gen-intro">
+      <h2>Command generator</h2>
+      <p class="section-sub">${genMode==='recipes' ? "Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command." : "Every command in the reference, in one searchable list. Fill in any blanks and copy."}</p>
     </div>
+    ${modeToggleHtml}
+    ${layoutHtml}
     <div class="gen-history-panel">
       <div class="gen-history-header">
         <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>

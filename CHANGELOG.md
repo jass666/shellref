@@ -2,6 +2,19 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v4.3 - Command Generator can now build from any of the 290 reference commands, not just the 13 curated recipes
+
+* Added a mode toggle at the top of the Command Generator: **Quick recipes** (the existing 13 hand-built, multi-shell, scope-aware tasks — unchanged) and **Browse all commands**, a new mode that turns every entry in the full reference into a generator task.
+* In Browse mode the left panel is a searchable, section-grouped list of all 290 commands (search matches command text, description, and keywords). Selecting one shows its description/use-case and, for the 22 entries whose `cmd` field contains `<Token>` placeholders (e.g. `wsl --install -d <Distro>`, `kill -9 <PID>`), one text input per unique token that live-substitutes into the output as you type. The other 268 entries have nothing to fill in — they render as ready-to-copy immediately, using the same `ex` field the static reference cards already show.
+* Implemented generically off the existing `DATA` array (each item now carries a stable `_id`) rather than hand-writing 290 new recipes — any future entry added to the reference automatically becomes available in Browse mode with no extra work.
+* "Recent commands" history now records both modes: recipe builds as before, and Browse-mode copies (labeled with the command's own text, and its shell badge when the entry carries a `sh` field). "Use" on a saved Browse-mode entry switches the generator back into Browse mode and re-selects that exact command with its filled-in values restored. Old saved history from before this change still loads correctly.
+* Verified: all 290 `DATA` entries got a unique `_id`, 22 correctly detected as having `<Token>` placeholders, 268 with none; sample substitutions (`<Distro>` → `Ubuntu-22.04`, `<PID>` → `4821`) produce the expected output; full inline script still parses cleanly.
+
+## v4.2 - Sidebar section list can be scrolled on its own
+
+* **Bug**: the section nav (Install & setup, Files, Processes, etc.) had no scroll container of its own — on shorter viewports, reaching an item further down the list meant scrolling the entire page, not just the sidebar.
+* **Fix**: gave `nav.sidebar` its own vertical scroll — capped to the viewport height below the sticky header (`max-height: calc(100vh - 94px)`) with `overflow-y: auto` — so the section list scrolls independently while staying pinned in place as the main content scrolls past it.
+
 ## v4.1 - Command text itself is now shell-colored, not just the badge
 
 * On the 8 mixed-shell task sections (Files, Processes, Networking, Text Search, Scripting, Users/Permissions, System Info) every card whose `sh` field is set now renders its command text in that shell's accent color (`--cmd` blue / `--ps` blue / `--unix` teal-green), in addition to the existing color-coded badge next to it — so the shell reads at a glance without having to spot the small uppercase tag.
