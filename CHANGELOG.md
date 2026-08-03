@@ -2,6 +2,12 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v4.5 - Command generator moved up in the sidebar, right below Install & setup
+
+* Moved the **Command generator** nav button from its old spot (grouped with FAQ at the bottom, below a divider) to directly under **Install & setup** at the top of the sidebar — it's one of the most-used tools on the site, so it no longer sits below all 14 reference sections.
+* Removed the now-orphaned `nav-divider` that used to separate it from FAQ; FAQ keeps its own divider above it since it's still a distinct "help" entry at the bottom of the list.
+* No changes to section content, `VALID_SECTIONS`, or generator logic — purely a nav-order change. Verified the full inline script still parses cleanly (`node --check`) and the sidebar still renders all 18 nav buttons.
+
 ## v4.4 - New "Disk cleanup" tier: search and clear every cache/temp folder on C:
 
 * Added a new **Disk cleanup** tier inside Troubleshooting & Fixes with 8 entries covering every major cache/temp bucket Windows accumulates on the system drive: user + system temp folders (CMD and PowerShell versions), Windows Update download cache (`SoftwareDistribution\Download`), Delivery Optimization's peer-to-peer update cache, Prefetch, the Explorer thumbnail cache, and the Recycle Bin (`Clear-RecycleBin -Force`).
