@@ -2,6 +2,22 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v4.7 - Sidebar alphabetized (except the two pinned items at top)
+
+* Reordered every sidebar nav button alphabetically by its visible label — **Install & setup** and **Command generator** stay pinned at the top in that order (unchanged); everything else, including **All commands** and **FAQ for beginners**, now sorts A→Z: All commands, Apps: Install & Remove, Disk Cleanup, Docker, FAQ for beginners, Files Folders & Storage, Git, Networking & Remote Access, Outlook / PST, Processes Jobs & Scheduling, Registry, Scripting & Shell Environment, System Info & Hardware, Text Search & Data Processing, Troubleshooting & Fixes, Users Permissions & Policy, WSL & Linux Interop.
+* The `nav-divider` moved with it — it now sits right after the two pinned buttons, marking them off from the alphabetized list below, instead of its old spot separating "All commands" from "FAQ."
+* Pure markup reorder: no changes to `VALID_SECTIONS`, `SECTION_META`, `setStats()`, or any `DATA` entries — nav button count unchanged (19). Verified the full inline script still parses cleanly (`node --check`).
+* Left the hero stat-boxes grid (the "n / label" numbers under the headline) in its existing order since it's a separate presentational element, not the navigation list this change was about — flag if you'd like that alphabetized too.
+
+## v4.6 - Disk Cleanup promoted to its own top-level section
+
+* The 8 cache/temp-clearing entries added in v4.4 move out of Troubleshooting & Fixes and into a new top-level section, **Disk Cleanup** (`s:'cleanup'`), with its own nav button (placed right after Troubleshooting & Fixes), hero stat box ("disk cleanup"), and accent color (`--cleanup`, a teal distinct from every existing accent).
+* Split the single "Disk cleanup" tier into two clearer ones now that the section stands alone: **Temp & cache folders** (the 7 individual locations — user/system temp, Windows Update cache, Delivery Optimization, Prefetch, thumbnails, Recycle Bin) and **Full sweep** (the one combined script).
+* Registered `cleanup` in `VALID_SECTIONS` and in `setStats()` (added to both the `sections` list and the `idSuffix` map) so its hero and nav counts populate correctly; added `'Temp & cache folders'` and `'Full sweep'` to the tier-ordering array so they render in a deliberate order rather than alphabetically.
+* Troubleshooting & Fixes' subtitle reverts to its pre-v4.4 wording, with one added line pointing to the new Disk Cleanup section.
+* Verified: 298 total entries unchanged, 8 correctly re-tagged from `s:'troubleshoot'` to `s:'cleanup'`, 20 remain under `s:'troubleshoot'` (28 − 8), full inline script still parses cleanly (`node --check`).
+* **Known pre-existing gap, not touched here**: the "All commands" tab's `sectionsToShow` list (used only when `activeSection === 'all'`) already omitted `git`, `docker`, `reg`, `outlook`, and `troubleshoot` before this change — `cleanup` is consistent with that same gap rather than newly broken by it. Worth fixing in a future pass if that tab is meant to show every section.
+
 ## v4.5 - Command generator moved up in the sidebar, right below Install & setup
 
 * Moved the **Command generator** nav button from its old spot (grouped with FAQ at the bottom, below a divider) to directly under **Install & setup** at the top of the sidebar — it's one of the most-used tools on the site, so it no longer sits below all 14 reference sections.
