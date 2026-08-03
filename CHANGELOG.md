@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v4.4 - New "Disk cleanup" tier: search and clear every cache/temp folder on C:
+
+* Added a new **Disk cleanup** tier inside Troubleshooting & Fixes with 8 entries covering every major cache/temp bucket Windows accumulates on the system drive: user + system temp folders (CMD and PowerShell versions), Windows Update download cache (`SoftwareDistribution\Download`), Delivery Optimization's peer-to-peer update cache, Prefetch, the Explorer thumbnail cache, and the Recycle Bin (`Clear-RecycleBin -Force`).
+* Added a flagship **"Full sweep"** PowerShell entry that chains all of the above — plus the Chrome and Edge cache folders — into a single elevated-session script, with `-ErrorAction SilentlyContinue` throughout so a file locked by a running process is skipped rather than aborting the whole run.
+* Registered `'Disk cleanup'` in the tier-ordering array, right after "Troubleshooting & repair" and before "Sticky Keys & accessibility popups," so it renders in a deliberate spot instead of falling back to alphabetical order.
+* Updated the Troubleshooting & Fixes section subtitle to mention the new tier. No new top-level section, CSS accent, or nav entry was needed — this lives inside the existing `troubleshoot` section and its hero/nav counts are computed dynamically from `DATA`.
+* Verified: 298 total entries (290 + 8 new), all 8 new entries correctly tagged `s:'troubleshoot'`, `t:'Disk cleanup'`; full inline script still parses cleanly (`node --check`).
+
 ## v4.3 - Command Generator can now build from any of the 290 reference commands, not just the 13 curated recipes
 
 * Added a mode toggle at the top of the Command Generator: **Quick recipes** (the existing 13 hand-built, multi-shell, scope-aware tasks — unchanged) and **Browse all commands**, a new mode that turns every entry in the full reference into a generator task.
