@@ -902,6 +902,20 @@ const UNIX_DRIVE_PICKS = [
 ];
 const UNIX_DRIVE_PICKS_SAFE = UNIX_DRIVE_PICKS.filter(p=>!p.all);
 
+// Quick-pick chips for the "Extension" fields (find/delete/search-by-type tasks) — same
+// one-click idea as the drive picks above, covering the extensions people actually reach
+// for most: logs/text, common docs, spreadsheets/data, images, archives, and a couple of
+// dev-file staples. Kept to one row's worth so it doesn't dominate the field.
+const EXT_PICKS = [
+  {v:'txt', l:'.txt'}, {v:'log', l:'.log'}, {v:'pdf', l:'.pdf'}, {v:'docx', l:'.docx'},
+  {v:'xlsx', l:'.xlsx'}, {v:'csv', l:'.csv'}, {v:'jpg', l:'.jpg'}, {v:'png', l:'.png'},
+  {v:'zip', l:'.zip'}, {v:'json', l:'.json'},
+];
+// Same picks, plus a leading "Any file" chip that clears the field — used on the one task
+// (Search for text inside files) where the extension is an optional filter rather than
+// the whole point of the task, so there needs to be a one-click way back to "no filter."
+const EXT_PICKS_OPTIONAL = [{v:'', l:'Any file', all:true}, ...EXT_PICKS];
+
 // Drive quick-picks store a path with a trailing backslash (e.g. "C:\") so it's a valid,
 // unambiguous root on its own. But several build() functions below join v.path with a
 // hardcoded "\" before appending a pattern (e.g. `${v.path}\*.${ext}`), which assumes the
@@ -912,15 +926,15 @@ function winPath(p){ return String(p).replace(/[\\/]+$/, ''); }
 
 const GENERATORS = [
   { id:'find-ext', label:'Find files by extension', cat:'Files', shells:{
-    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `for %d in (C D E F G H) do @if exist %d:\\ dir "%d:\\*.${v.ext}" /s /b 2>nul`
         : (v.scope==='top' ? `dir "${winPath(v.path)}\\*.${v.ext}" /b` : `dir "${winPath(v.path)}\\*.${v.ext}" /s /b`) },
-    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
         ? `Get-PSDrive -PSProvider FileSystem | ForEach-Object { Get-ChildItem -Path $_.Root -Filter *.${v.ext} -Recurse -ErrorAction SilentlyContinue }`
         : (v.scope==='top' ? `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext}` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse`) },
-    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd'},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS},SCOPE_PARAM],
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'crd',d:'crd',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path==='/'
         ? `find / -type f -iname "*.${v.ext}" 2>/dev/null`
         : (v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f -name "*.${v.ext}"` : `find ${v.path} -type f -name "*.${v.ext}"`) },
@@ -964,29 +978,29 @@ const GENERATORS = [
         : (v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f -size +${v.size}M` : `find ${v.path} -type f -size +${v.size}M`) },
   }},
   { id:'delete-ext', label:'Delete all files with an extension', cat:'Files', shells:{
-    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
+    cmd:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
       build:v=> v.scope==='top' ? `del "${winPath(v.path)}\\*.${v.ext}"` : `for /r "${v.path}" %f in (*.${v.ext}) do @del "%f"` },
-    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
+    powershell:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'C:\\Temp',d:'C:\\Temp',drivePicks:WIN_DRIVE_PICKS_SAFE},SCOPE_PARAM],
       build:v=> v.scope==='top' ? `Remove-Item -Path "${winPath(v.path)}\\*.${v.ext}" -Force` : `Get-ChildItem -Path "${v.path}" -Filter *.${v.ext} -Recurse | Remove-Item` },
-    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp'},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS_SAFE},SCOPE_PARAM],
+    unix:{ params:[{k:'ext',l:'Extension (no dot)',ph:'tmp',d:'tmp',extPicks:EXT_PICKS},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS_SAFE},SCOPE_PARAM],
       build:v=> v.scope==='top' ? `find ${v.path} -maxdepth 1 -name "*.${v.ext}" -delete` : `find ${v.path} -name "*.${v.ext}" -delete` },
   }},
   { id:'search-text', label:'Search for text inside files', cat:'Search', shells:{
-    cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:''},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+    cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:'',extPicks:EXT_PICKS_OPTIONAL},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> { const pat = v.ext ? `*.${v.ext}` : '*.*';
         return v.path===ALL_DRIVES
           ? `for %d in (C D E F G H) do @if exist %d:\\ findstr /S /I /C:"${v.text}" "%d:\\${pat}" 2>nul`
           : (v.scope==='top'
             ? `findstr /I /C:"${v.text}" "${winPath(v.path)}\\${pat}"`
             : `pushd "${v.path}" && findstr /S /I /C:"${v.text}" ${pat} & popd`); } },
-    powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:''},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+    powershell:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:'',extPicks:EXT_PICKS_OPTIONAL},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> { const filt = v.ext ? ` -Filter *.${v.ext}` : '';
         return v.path===ALL_DRIVES
           ? `Get-PSDrive -PSProvider FileSystem | ForEach-Object { Get-ChildItem -Path $_.Root -Recurse -File${filt} -ErrorAction SilentlyContinue | Select-String -Pattern "${v.text}" }`
           : (v.scope==='top'
             ? `Get-ChildItem -Path "${v.path}" -File${filt} | Select-String -Pattern "${v.text}"`
             : `Get-ChildItem -Path "${v.path}" -Recurse -File${filt} | Select-String -Pattern "${v.text}"`); } },
-    unix:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:''},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS},SCOPE_PARAM],
+    unix:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type (optional, no dot)',ph:'log',d:'',extPicks:EXT_PICKS_OPTIONAL},{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> { const inc = v.ext ? ` --include="*.${v.ext}"` : ''; const nameFilt = v.ext ? ` -iname "*.${v.ext}"` : '';
         return v.path==='/'
           ? `grep -rin${inc} "${v.text}" / 2>/dev/null`
@@ -1353,8 +1367,9 @@ function renderGenerator(){
           <select class="gen-field-input gen-field-select" data-key="${escapeHtml(p.k)}" onchange="onGenInput(this)">${optsHtml}</select>
         </label>`;
       } else {
-        const picksHtml = p.drivePicks ? `<div class="gen-drive-picks">${
-          p.drivePicks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${jsAttr(p.k)}','${jsAttr(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
+        const picks = p.drivePicks || p.extPicks;
+        const picksHtml = picks ? `<div class="gen-drive-picks">${
+          picks.map(dp=>`<button type="button" class="gen-drive-chip${dp.v===val?' active':''}${dp.all?' all-drives':''}" onclick="onGenQuickPick('${jsAttr(p.k)}','${jsAttr(dp.v)}')">${escapeHtml(dp.l)}</button>`).join('')
         }</div>` : '';
         const displayVal = val === ALL_DRIVES ? 'All drives (entire system)' : val;
         fieldsHtml += `<label class="gen-field">

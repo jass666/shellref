@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.0 - Command Generator: file type quick-pick chips on every "Extension" field
+
+* Added one-click extension chips (`.txt`, `.log`, `.pdf`, `.docx`, `.xlsx`, `.csv`, `.jpg`, `.png`, `.zip`, `.json`) under the **Extension** field on all three Quick recipes that take one — **Find files by extension**, **Delete all files with an extension**, and **Search for text inside files** — across all three shell tabs each (9 fields total), the same one-click pattern the "Folder to search" field's drive picks already used.
+* **Search for text inside files**' extension field is optional (an empty value means "search every file"), so its chip row gets an extra leading **Any file** chip that clears the field back to no filter — the other two tasks require an extension to do anything, so they only get the 10 file-type chips.
+* Implemented generically: a new `EXT_PICKS` array (plus `EXT_PICKS_OPTIONAL` = `EXT_PICKS` with the "Any file" chip prepended) is attached to each `ext` param the same way `drivePicks` already attaches to `path` params, and the render code that builds the quick-pick row now reads `p.drivePicks || p.extPicks` instead of only checking `drivePicks` — no new CSS, no new click handler, `onGenQuickPick` was already generic over field key.
+* Browse mode (build-from-any-of-319-commands) is unaffected — its `<Token>` substitution only fires on literal `<Name>`-style placeholders, and none of the "search by file type" reference entries use one (they show `*.ext` as literal example text, not a fillable token), so there was nothing there for a picker to attach to.
+* Verified: all 9 target fields (find-ext × 3 shells, delete-ext × 3 shells, search-text × 3 shells) carry the correct picks array, "Any file" only appears on search-text, full inline script re-parses cleanly (`node --check`).
+
 ## v4.9 - Search gets its own section; grep/findstr/Select-String expanded with file-type filtering, single-folder scoping, and modern tools
 
 * **Split "Text Search & Data Processing" into two top-level sections.** Search was previously bundled together with sed/awk/sort/wc under one nav entry — now **Search & Pattern Matching** (`s:'search'`, teal accent, reusing the old section's color) covers finding text inside files, and **Data Processing** (`s:'dataproc'`, new magenta accent `--dataproc`) covers reshaping it once found. Existing entries were re-tagged, not rewritten: findstr, Select-String, PowerShell `-match`/`-replace`, and all 8 unix `grep` entries moved to Search (10 entries); `type`, `Get-Content`, `head`/`tail -f`, the full sed/awk tier, and `wc`/`diff`/`sort | uniq -c` stayed in Data Processing (15 entries). `findstr` was also re-tiered from "Viewing & filtering" into "Pattern search (grep family)" since it's a search tool, not a viewer.
