@@ -2,6 +2,18 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.1 - Command Generator: extension chips are now multi-select, with correct per-shell syntax for 2+ extensions
+
+* **Fixed:** v5.0's extension chips only ever held one value — clicking a second chip replaced the first instead of adding to it, so there was no way to build e.g. "find every .log or .txt file" from the picker. Chips on `ext` params (`extPicks`) now carry a new `multi:true` flag and behave as toggles: clicking one adds/removes it from a comma-separated list (`"log,txt"`) stored in that field, and a chip shows active whenever its extension is in the list. Drive-pick chips (`drivePicks`, on the "Folder to search" field) are untouched — still single-select, still replace the value on click. The "Any file" chip on **Search for text inside files** now clears the whole list instead of just itself.
+* New `onGenExtToggle(key, value, isAll)` handles the toggle; `onGenQuickPick` stays as-is for drive picks and the select-type params.
+* **Rewrote all 9 `build()` functions** (find-ext × 3 shells, delete-ext × 3 shells, search-text × 3 shells) to actually honor 2+ extensions with each shell's native "multiple patterns" syntax instead of silently only using the first one:
+  - **CMD**: `dir`/`del`/`findstr` all accept several quoted `path\*.ext` specs as separate arguments on one line, so N extensions become N specs (`dir "C:\Projects\*.log" "C:\Projects\*.txt" /s /b`); the recursive `del` still uses `for /r "path" %f in (*.log *.txt) do @del "%f"` since `for`'s `(set)` already takes space-separated masks.
+  - **PowerShell**: single extension keeps the exact `-Filter *.ext` output from before (byte-for-byte, so existing single-ext commands don't change); 2+ switches to `-Include *.log,*.txt` (comma list), which needs either `-Recurse` or a path ending in `\*` to actually filter — non-recursive ("top only") multi-extension search/find/delete now points `-Path` at `"folder\*"` to satisfy that.
+  - **Unix**: `find -name`/`-iname` only take one pattern each, so 2+ extensions get OR'd in a parenthesized group (`\( -name "*.log" -o -name "*.txt" \)`); `grep --include` is simply repeated once per extension (`--include="*.log" --include="*.txt"`).
+* New shared helpers: `extArr(ext)` splits the comma-separated field value into a clean trimmed array (used by every build() that reads an ext field), `findNameExpr(exts, flag)` builds the single-pattern-or-OR'd-group expression for `find` (used by find-ext and delete-ext's unix builds, and search-text's non-recursive unix build).
+* Field labels updated from "Extension (no dot)" / "File type (optional, no dot)" to "Extension(s) (no dot)" / "File type(s) (optional, no dot)" to signal multi-select is available.
+* Verified: `node --check` on the full inline script, plus an isolated test harness running all 9 `build()` functions through both a single extension and a two-extension case (and the all-drives / any-file edge cases) — single-extension output is unchanged from v5.0, multi-extension output uses correct native syntax per shell.
+
 ## v5.0 - Command Generator: file type quick-pick chips on every "Extension" field
 
 * Added one-click extension chips (`.txt`, `.log`, `.pdf`, `.docx`, `.xlsx`, `.csv`, `.jpg`, `.png`, `.zip`, `.json`) under the **Extension** field on all three Quick recipes that take one — **Find files by extension**, **Delete all files with an extension**, and **Search for text inside files** — across all three shell tabs each (9 fields total), the same one-click pattern the "Folder to search" field's drive picks already used.
