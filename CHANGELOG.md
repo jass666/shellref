@@ -2,6 +2,15 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.2 - Install & setup: new "Shells: what they are & why" tier
+
+* **New tier, 7 entries**, added right after "Bootstrap — do this first" (before Package managers) — closes a gap where the site told people *how* to install tools but never explained the shells they'd be typing into. Covers CMD, Windows PowerShell 5.1 (built-in), PowerShell 7/pwsh, WSL/bash, Git Bash, and Windows Terminal, plus a "Which shell should I use?" quick-reference card.
+* Each shell entry explains what it actually is, how it differs from the others (text pipeline vs object pipeline, real Linux kernel vs emulation layer, built-in vs separately installed), and a **"Best for:"** line calling out the specific use case it wins at over the alternatives — not just install commands.
+* Added the quick-reference card as the first entry in the tier: a plain "task → shell" lookup table (everyday scripting → PowerShell, legacy .bat → CMD, Linux-only tooling → WSL, quick git/unix → Git Bash) so the comparison is scannable in one glance before reading the individual cards.
+* Windows Terminal is explicitly called out as a *host app*, not a shell itself, since it's easy to conflate the tabbed terminal with the shell running inside a given tab.
+* Added `'Shells: what they are & why'` to the tier-ordering array right after `'Bootstrap — do this first'` so it renders early, before the install-focused tiers, as foundational context.
+* Setup section entry count: 31 → 38. Verified inline script re-parses cleanly (`node --check`).
+
 ## v5.1 - Command Generator: extension chips are now multi-select, with correct per-shell syntax for 2+ extensions
 
 * **Fixed:** v5.0's extension chips only ever held one value — clicking a second chip replaced the first instead of adding to it, so there was no way to build e.g. "find every .log or .txt file" from the picker. Chips on `ext` params (`extPicks`) now carry a new `multi:true` flag and behave as toggles: clicking one adds/removes it from a comma-separated list (`"log,txt"`) stored in that field, and a chip shows active whenever its extension is in the list. Drive-pick chips (`drivePicks`, on the "Folder to search" field) are untouched — still single-select, still replace the value on click. The "Any file" chip on **Search for text inside files** now clears the whole list instead of just itself.
