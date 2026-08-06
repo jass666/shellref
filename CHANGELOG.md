@@ -2,6 +2,16 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.4 - Command Generator: new "List every file type in a folder" quick recipe
+
+* **Fixed:** v5.3 added extension-discovery *reference cards* to the Search section, but the Command Generator's **Quick recipes** tab is a separate, hand-curated task list (`GENERATORS`) that reference-card additions never populate — so the new capability was invisible from the Generator itself. This adds a proper 14th quick recipe, `id:'list-extensions'`, label **"List every file type in a folder"**, filed under the existing **Files** category right after "Find files by extension" (its logical inverse).
+* Same field shape as the other Files recipes — **Folder to search** (with the standard drive quick-picks) and the shared **Search in** scope toggle (this folder only / this folder + subfolders) — but deliberately no Extension field, since discovering extensions is the whole point.
+* Per-shell `build()`, all three honoring scope and the "all drives / whole filesystem" pick:
+  - **CMD**: `(for %f in ("path\*") do @echo %~xf) | sort` (this folder only) / `(for /r "path" %f in (*) do @echo %~xf) | sort` (+ subfolders) / a nested drive-loop variant for "All drives."
+  - **PowerShell**: `Get-ChildItem -Path "path" -File | Select-Object -Unique Extension | Sort-Object Extension` (this folder only) / `... -Recurse -File | Group-Object Extension | Sort-Object Count -Descending` (+ subfolders, with per-type counts) / a `Get-PSDrive`-looped version for "All drives."
+  - **Unix**: `ls -p "path" | grep -v / | sed 's/.*\.//' | sort -u` (this folder only) / `find "path" -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn` (+ subfolders, with counts) / `find / -type f 2>/dev/null | ...` for the "Whole filesystem (/)" pick.
+* Verified: full inline script re-parses cleanly (`node --check`); each of the 9 shell×scope build() combinations (including both "All drives"/"/" variants) was executed directly against sample input and produced the expected command string. Quick recipe count: 13 → 14.
+
 ## v5.3 - Search: new "Discover file types" tier — list every extension present, not just search for a known one
 
 * **New tier, 6 entries** (`t:'Discover file types (list every extension in use)'`), added to Search & Pattern Matching right after "Search by file type" and before "Single folder: search & sort" — closes a gap where every existing extension-related entry assumed you already knew the extension you were looking for (search by *.ext, sort a folder by extension). Nothing answered the opposite question: "what file types are actually in this folder/drive?"

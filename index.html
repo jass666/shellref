@@ -979,6 +979,34 @@ const GENERATORS = [
           ? `find / -type f ${findNameExpr(exts,'-iname')} 2>/dev/null`
           : (v.scope==='top' ? `find ${v.path} -maxdepth 1 -type f ${findNameExpr(exts,'-name')}` : `find ${v.path} -type f ${findNameExpr(exts,'-name')}`); } },
   }},
+  { id:'list-extensions', label:'List every file type in a folder', cat:'Files', shells:{
+    // The inverse of find-ext: instead of hunting for a known extension, this
+    // discovers what extensions actually exist under a folder (or a whole drive).
+    // No 'ext' field — that's the whole point — just path + scope.
+    cmd:{ params:[{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+      // No native "unique" in CMD, so this loops every file, prints just its extension
+      // (%~xf), and pipes through sort so identical extensions cluster together.
+      build:v=>{
+        if(v.path===ALL_DRIVES)
+          return `(for %d in (C D E F G H) do @if exist %d:\\ for /r %d:\\ %f in (*) do @echo %~xf) | sort`;
+        return v.scope==='top'
+          ? `(for %f in ("${winPath(v.path)}\\*") do @echo %~xf) | sort`
+          : `(for /r "${v.path}" %f in (*) do @echo %~xf) | sort`; } },
+    powershell:{ params:[{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
+      build:v=>{
+        if(v.path===ALL_DRIVES)
+          return `Get-PSDrive -PSProvider FileSystem | ForEach-Object { Get-ChildItem -Path $_.Root -Recurse -File -ErrorAction SilentlyContinue } | Group-Object Extension | Sort-Object Count -Descending`;
+        return v.scope==='top'
+          ? `Get-ChildItem -Path "${v.path}" -File | Select-Object -Unique Extension | Sort-Object Extension`
+          : `Get-ChildItem -Path "${v.path}" -Recurse -File | Group-Object Extension | Sort-Object Count -Descending`; } },
+    unix:{ params:[{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS},SCOPE_PARAM],
+      build:v=>{
+        if(v.path==='/')
+          return `find / -type f 2>/dev/null | sed 's/.*\\.//' | sort | uniq -c | sort -rn`;
+        return v.scope==='top'
+          ? `ls -p "${v.path}" | grep -v / | sed 's/.*\\.//' | sort -u`
+          : `find "${v.path}" -type f | sed 's/.*\\.//' | sort | uniq -c | sort -rn`; } },
+  }},
   { id:'find-name', label:'Find files by name (partial match)', cat:'Files', shells:{
     cmd:{ params:[{k:'name',l:'Text in filename',ph:'invoice',d:'invoice'},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       build:v=> v.path===ALL_DRIVES
