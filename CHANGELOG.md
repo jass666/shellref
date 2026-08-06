@@ -2,6 +2,16 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.5 - CMD's "list every file type" commands now truly deduplicate, not just sort
+
+* **Fixed:** every CMD command in the new v5.3/v5.4 file-type-discovery additions only ever sorted its output — identical extensions ended up clustered together but each still printed once per matching file, so a folder with 40 `.log` files showed `.log` 40 times, not once. Sorting alone was never a real substitute for a unique list.
+* **Real fix**: CMD still has no built-in dedupe filter, so all four affected commands now use the standard three-step batch idiom — collect extensions to a temp file, sort it, then a `setlocal enabledelayedexpansion` loop compares each line against a `prev` variable and only echoes it when it's different from the line before. Writing to a temp file first (`%temp%\exts.txt`) sidesteps the nested-quoting mess that trying to pipe straight into the dedupe loop would otherwise require.
+* Updated in both places affected:
+  - **Reference cards** (Search → Discover file types tier): both CMD entries (single folder, and recursive/whole-drive) rewritten with the 3-line `ex` sequence.
+  - **Command Generator** (Files → List every file type in a folder): the `cmd` shell's `build()` rewritten to emit the same 3-line sequence for all three scope states (this folder only, + subfolders, and All drives).
+  - PowerShell (`Select-Object -Unique` / `Group-Object`) and Unix (`sort -u` / `uniq -c`) were already genuinely unique and needed no change.
+* Verified: full inline script re-parses cleanly (`node --check`); the `DATA` array was independently parsed to confirm both reference-card `ex` fields carry the corrected 3-line commands; all three Generator `cmd` build() scope variants (top/sub/All drives) were executed directly and produce the expected `setlocal` → collect → dedupe sequence with no stray quoting issues.
+
 ## v5.4 - Command Generator: new "List every file type in a folder" quick recipe
 
 * **Fixed:** v5.3 added extension-discovery *reference cards* to the Search section, but the Command Generator's **Quick recipes** tab is a separate, hand-curated task list (`GENERATORS`) that reference-card additions never populate — so the new capability was invisible from the Generator itself. This adds a proper 14th quick recipe, `id:'list-extensions'`, label **"List every file type in a folder"**, filed under the existing **Files** category right after "Find files by extension" (its logical inverse).
