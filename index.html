@@ -1071,6 +1071,33 @@ const GENERATORS = [
           ? `find ${v.path} -maxdepth 1 ${findNameExpr(exts,'-name')} -delete`
           : `find ${v.path} ${findNameExpr(exts,'-name')} -delete`; } },
   }},
+  { id:'delete-empty-folders', label:'Delete all empty subfolders', cat:'Files', shells:{
+    // Deleting empty folders is inherently a whole-tree operation (not "top only" vs
+    // "+ subfolders" like the other Files tasks), so no SCOPE_PARAM here — just a path.
+    // Uses the SAFE drive picks (no one-click whole-system delete) same as delete-ext.
+    //
+    // The hard part isn't finding empty folders, it's nested ones: if B is empty and its
+    // parent A contains only B, deleting B should make A empty too, and a naive single pass
+    // over a snapshot of "currently empty" folders misses that cascade.
+    cmd:{ params:[{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS_SAFE}],
+      // rd (no /s) only removes a directory if it's actually empty and silently errors otherwise,
+      // so 2>nul just hides those expected failures. The cascade is handled by `sort /r`: any
+      // child path is always longer than (and sorts after) its parent, so a reverse sort visits
+      // every folder deepest-first, meaning a parent's children are always rd'd before the parent
+      // itself is reached in the same pass.
+      build:v=>`for /f "delims=" %d in ('dir "${winPath(v.path)}" /ad /b /s ^| sort /r') do @rd "%d" 2>nul` },
+    powershell:{ params:[{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS_SAFE}],
+      // Get-ChildItem's tree snapshot doesn't update as items are removed, so one pass can leave
+      // freshly-emptied parents behind. A do/while re-scans and re-removes until a pass finds
+      // nothing left to delete. -Force on both calls counts/removes hidden folders too, so a
+      // folder isn't skipped just because everything inside it happens to be hidden.
+      build:v=>`do {\n  $empty = Get-ChildItem -Path "${v.path}" -Recurse -Directory -Force | Where-Object { (Get-ChildItem -Path $_.FullName -Force | Measure-Object).Count -eq 0 }\n  $empty | Remove-Item -Force\n} while ($empty.Count -gt 0)` },
+    unix:{ params:[{k:'path',l:'Folder to search',ph:'.',d:'.',drivePicks:UNIX_DRIVE_PICKS_SAFE}],
+      // find's -delete forces depth-first traversal (visits a folder's contents before the
+      // folder itself), so by the time it reaches a parent, any now-empty child from earlier in
+      // the same walk is already gone — the cascade is handled in a single pass, no re-scan needed.
+      build:v=>`find "${v.path}" -type d -empty -delete` },
+  }},
   { id:'search-text', label:'Search for text inside files', cat:'Search', shells:{
     cmd:{ params:[{k:'text',l:'Text to search for',ph:'TODO',d:'TODO'},{k:'ext',l:'File type(s) (optional, no dot)',ph:'log',d:'',extPicks:EXT_PICKS_OPTIONAL,multi:true},{k:'path',l:'Folder to search',ph:'C:\\Projects',d:'C:\\Projects',drivePicks:WIN_DRIVE_PICKS},SCOPE_PARAM],
       // findstr, like dir/del, accepts several filename specs in one call, so N extensions

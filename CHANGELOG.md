@@ -2,6 +2,16 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.6 - Command Generator: new "Delete all empty subfolders" quick recipe
+
+* **New 15th quick recipe**, `id:'delete-empty-folders'`, label **"Delete all empty subfolders"**, filed under **Files** right after "Delete all files with an extension" — closes a cleanup gap none of the existing Files recipes covered (they all target files, never folder structure).
+* Just a **Folder to search** field (drive quick-picks, SAFE variant — no one-click whole-system delete, same as "Delete all files with an extension"). No extension field (not applicable) and deliberately no `SCOPE_PARAM` — deleting empty folders is inherently a whole-tree operation, not a "top only" vs "+ subfolders" choice like the other Files tasks.
+* The real design problem across all three shells was **nested empty folders**: deleting an empty child can leave its now-empty parent behind, so a naive single pass over a snapshot misses the cascade. Each `build()` handles this differently:
+  - **CMD**: `for /f "delims=" %d in ('dir "path" /ad /b /s ^| sort /r') do @rd "%d" 2>nul` — `rd` (no `/s`) only removes a folder if it's actually empty and errors otherwise (`2>nul` hides that). The cascade is handled by `sort /r`: a child path is always longer than its parent and so always sorts after it, meaning a reverse sort visits every folder deepest-first — children are always `rd`'d before their parent is reached in the same pass.
+  - **PowerShell**: a `do { ... } while ($empty.Count -gt 0)` loop that re-scans with `Get-ChildItem -Recurse -Directory -Force` and re-removes on each pass until nothing empty is left. `-Force` on both the outer scan and the inner per-folder content check so a folder isn't skipped just because everything inside it happens to be hidden.
+  - **Unix**: `find "path" -type d -empty -delete` — `find`'s `-delete` forces depth-first traversal (a folder's contents are visited before the folder itself), so by the time it reaches a parent, any child emptied earlier in the same walk is already gone. No re-scan loop needed; the cascade is handled in a single pass.
+* Verified: full inline script re-parses cleanly (`node --check`); all three `build()` variants were executed directly against sample paths and produced the expected command strings. Quick recipe count: 14 → 15.
+
 ## v5.5 - CMD's "list every file type" commands now truly deduplicate, not just sort
 
 * **Fixed:** every CMD command in the new v5.3/v5.4 file-type-discovery additions only ever sorted its output — identical extensions ended up clustered together but each still printed once per matching file, so a folder with 40 `.log` files showed `.log` 40 times, not once. Sorting alone was never a real substitute for a unique list.
