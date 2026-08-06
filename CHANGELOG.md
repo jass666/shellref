@@ -2,6 +2,17 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.3 - Search: new "Discover file types" tier — list every extension present, not just search for a known one
+
+* **New tier, 6 entries** (`t:'Discover file types (list every extension in use)'`), added to Search & Pattern Matching right after "Search by file type" and before "Single folder: search & sort" — closes a gap where every existing extension-related entry assumed you already knew the extension you were looking for (search by *.ext, sort a folder by extension). Nothing answered the opposite question: "what file types are actually in this folder/drive?"
+* **2 entries per shell**, each pair covering a single folder (no subfolders) and a recursive/whole-drive scope, mirroring the existing single-folder-vs-recursive split used elsewhere in Search:
+  - **PowerShell**: `Get-ChildItem | Select-Object -Unique Extension` for one folder; `Get-ChildItem -Recurse | Select-Object -Unique Extension` for a folder tree or a whole drive (pointed at `C:\`). Both ex fields also show the `Group-Object Extension | Sort-Object Count -Descending` variant for a per-type count, not just a bare list.
+  - **CMD**: no built-in "list unique file types" command exists, so both entries loop over files with `for` / `for /r`, print just the extension via `%~xf`, and pipe through `sort` — `(for %f in (*) do @echo %~xf) | sort` for one folder, `(for /r "C:\Path" %f in (*) do @echo %~xf) | sort` recursively/whole-drive. Sorting clusters identical extensions together since CMD has no true dedupe/uniq; the entry description says so plainly rather than pretending it is a real unique list.
+  - **Unix**: `ls -p | grep -v / | sed 's/.*\.//' | sort -u` for one folder (strip filenames to their extension, dedupe); `find . -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn` recursively, which also gets a free per-type count via `uniq -c`.
+* Registered the new tier name in the tier-ordering array (right after `'Search by file type'`) so it renders in a deliberate spot instead of falling back to alphabetical. No new section, `VALID_SECTIONS` entry, or CSS accent needed — this lives inside the existing `search` section and its hero/nav counts are computed dynamically from `DATA`.
+* Updated the Search & Pattern Matching section subtitle to mention discovering file types alongside the existing search-by-type and modern-tools callouts.
+* Verified: 332 total entries (326 + 6 new), 37 in Search (31 + 6 new), all 6 correctly tagged `s:'search'`, `t:'Discover file types (list every extension in use)'`; full inline script re-parses cleanly (`node --check`), and the `DATA` array literal was independently parsed and inspected to confirm each new entry's `sh`/`cmd` fields — including the escaped `sed` single-quotes — came through exactly as written.
+
 ## v5.2 - Install & setup: new "Shells: what they are & why" tier
 
 * **New tier, 7 entries**, added right after "Bootstrap — do this first" (before Package managers) — closes a gap where the site told people *how* to install tools but never explained the shells they'd be typing into. Covers CMD, Windows PowerShell 5.1 (built-in), PowerShell 7/pwsh, WSL/bash, Git Bash, and Windows Terminal, plus a "Which shell should I use?" quick-reference card.
