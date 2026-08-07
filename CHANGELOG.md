@@ -2,6 +2,26 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v6.0 - "+ merge" button: add a Quick recipes / Browse output straight into the merge list without switching tabs
+
+* **New "+ merge" button** next to **copy** (and **⬇ script**) on every generated command in both **Quick recipes** and **Browse all commands** mode. One click adds that exact generated command — already fully filled in with whatever fields/tokens you set — onto the end of the **Merge commands** list, tagged `generated` so it's visually distinct from a hand-picked reference card. No need to switch tabs, re-find the command in the picker, or re-fill its tokens.
+* The **Merge commands** tab badge (added in v5.9) updates immediately to reflect the addition, and clicking "+ merge" repeatedly — across different recipes, shells, or browsed commands — keeps appending to the same ordered list, so a realistic multi-step script (e.g. three different recipe outputs run in sequence) can be built entirely from Quick recipes without ever opening the picker.
+* **Internal model change**: the merge list moved from a single array of reference-only `DATA._id`s (`combineSelectedIds`) to an ordered array of string keys (`combineOrder`, e.g. `ref:123` / `custom:7`) resolving through the new `combineEntryForKey()` into one of two entry kinds:
+  - **`ref`** — a hand-picked reference command (unchanged behavior): token-editable inline, resolved live via the existing `combineResolvedCommand()`.
+  - **`custom`** — a command added via "+ merge": already fully resolved by Quick recipes / Browse, stored as-is in the new `combineCustomEntries` map (keyed by an incrementing `combineCustomSeq` id), rendered with a `generated` tag and no token row since there's nothing left to fill in.
+  - Both kinds share the same reorder (▲/▼), remove (✕), copy-all, and download-as-script(s) machinery — `combineEntries()`, `copyCombineList()`, and `downloadCombineList()` now read through `combineEntryForKey()` instead of assuming every list item is a `DATA` row.
+* New helpers: `addCombineCustomEntry()` (shared by both add paths), `addGenRecipeToMerge()`, `addGenBrowseToMerge()`, `refKey()`/`customKey()` (key namespacing), and `showAddFeedback()` (a brief "added ✓" button flash, mirroring `showCopyFeedback()`, that holds until the follow-up re-render 650ms later picks up the new badge count).
+* Added `.combine-build-tags` (wraps the shell badge + new `generated` tag so `.combine-build-top`'s `space-between` still splits into exactly two groups) and `.combine-source-tag` styling to match the existing badge language.
+* Verified: full inline script re-parses cleanly (`node --check`); no remaining references to the old `combineSelectedIds` array; both `+ merge` buttons and all combine/merge functions confirmed defined exactly once.
+
+## v5.9 - Merged "Combine commands" into the Command Generator as a third "Merge commands" mode
+
+* **Removed the standalone "Combine commands" nav item/section** and folded its picker directly into **Command generator** as a third mode tab, alongside "Quick recipes" and "Browse all commands": **"Merge commands"** (shows a live count badge once 1+ commands are picked, matching the "Browse all commands" count badge style).
+* All prior functionality is unchanged and fully preserved — checkbox picker over every reference command, ordered build list with ▲/▼ reorder and ✕ remove, inline `<Token>` fill-in per picked command, **copy all**, and **⬇ download script(s)** grouped by shell. Only the entry point moved.
+* The "Recent commands" history panel (used by Quick recipes / Browse all) is hidden while in Merge commands mode, same as before when it was a separate section — the merge picker's own build list is the relevant "history" there.
+* Internal: `renderCombine()` (previously a full-page renderer with its own `main.innerHTML`) is now `combineLayoutHtml()`, returning just the `.gen-layout` markup consumed by `renderGenerator()`'s existing recipes/browse/combine branch; all combine handlers (`toggleCombineItem`, `removeCombineItem`, `moveCombineItem`, `clearCombineList`, `onCombineSearch`) now trigger `renderGenerator()` instead of the removed `renderCombine()`. Dropped `combine` from `VALID_SECTIONS` and the section-dispatch `if` in `render()`; nav button count 20 → 19.
+* Verified: full inline script re-parses cleanly (`node --check`); nav `data-target` set and `VALID_SECTIONS` now match exactly (19 each); no stray references to `renderCombine` or the `combine` section remain.
+
 ## v5.8 - New "Combine commands" section: hand-pick multiple commands directly and merge them into one script
 
 * New top-level nav item, **Combine commands**, separate from the Command Generator's history-based combine (which needed you to have already generated/copied each command first). This one is a dedicated picker:

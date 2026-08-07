@@ -422,7 +422,7 @@
   .gen-output-label{ font-size:11.5px; color:var(--muted); }
   .gen-output{ font-size:13px; }
 
-  /* ---- combine section ---- */
+  /* ---- combine/merge (Command generator → Merge commands mode) ---- */
   .combine-pick{ display:flex; align-items:center; gap:7px; cursor:pointer; }
   .combine-pick-check{ flex-shrink:0; cursor:pointer; accent-color:var(--amber); }
   .combine-build{ display:flex; flex-direction:column; gap:12px; max-height:640px; }
@@ -439,7 +439,13 @@
   .combine-order-btn:disabled{ opacity:.3; cursor:default; }
   .combine-build-main{ flex:1; min-width:0; }
   .combine-build-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .combine-build-tags{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
   .combine-build-cmd{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:600; color:var(--text); word-break:break-word; }
+  .combine-source-tag{
+    flex-shrink:0; font-family:'JetBrains Mono', monospace; font-size:9.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em; padding:2px 6px; border-radius:5px;
+    color:var(--muted); background:var(--panel); border:1px solid var(--border); white-space:nowrap;
+  }
   .combine-token-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
   .combine-token-input{ flex:1; min-width:120px; padding:6px 8px; font-size:12px; }
   .combine-build-resolved{ font-size:12px; margin:0; }
@@ -555,7 +561,6 @@
     <div class="nav-list" id="navList">
     <button class="nav-btn active" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
     <button class="nav-btn" data-target="generator" title="Command Generator"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Command generator</span></span></button>
-    <button class="nav-btn" data-target="combine" title="Combine commands into one script"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Combine commands</span></span></button>
     <div class="nav-divider"></div>
     <button class="nav-btn" data-target="all" title="All commands"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">All commands</span></span><span class="count" id="cAll">0</span></button>
     <button class="nav-btn" data-target="apps" title="Apps: Install & Remove"><span class="nav-btn-main"><span class="dot" style="background:var(--apps)"></span><span class="label-text">Apps: Install &amp; Remove</span></span><span class="count" id="cApps">0</span></button>
@@ -1232,7 +1237,7 @@ const GEN_SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(-
 // placeholders in their `cmd` field (e.g. `wsl --install -d <Distro>`) — for
 // those, this mode renders one text input per unique token and substitutes it
 // live into the output, the same way the curated recipes do.
-let genMode = 'recipes'; // 'recipes' | 'browse'
+let genMode = 'recipes'; // 'recipes' | 'browse' | 'combine'
 let genBrowseQuery = '';
 let genBrowseId = null; // matches a DATA[]._id
 let genBrowseValues = {}; // token -> value, for the currently selected item
@@ -1513,6 +1518,7 @@ function renderGenerator(){
   const modeToggleHtml = `<div class="gen-mode-toggle">
     <button type="button" class="gen-mode-btn${genMode==='recipes'?' active':''}" onclick="onGenModeClick('recipes')">Quick recipes</button>
     <button type="button" class="gen-mode-btn${genMode==='browse'?' active':''}" onclick="onGenModeClick('browse')">Browse all commands <span class="gen-mode-count">${DATA.length}</span></button>
+    <button type="button" class="gen-mode-btn${genMode==='combine'?' active':''}" onclick="onGenModeClick('combine')">Merge commands${combineOrder.length ? ` <span class="gen-mode-count">${combineOrder.length}</span>` : ''}</button>
   </div>`;
 
   let layoutHtml;
@@ -1577,6 +1583,7 @@ function renderGenerator(){
             <span class="gen-output-label">Generated command</span>
             <span class="gen-output-btns">
               <button type="button" class="copy-btn" onclick="copyGenOutput(this)">copy</button>
+              <button type="button" class="copy-btn" onclick="addGenRecipeToMerge(this)" title="Add this command to the Merge commands list">+ merge</button>
               <button type="button" class="copy-btn" onclick="downloadGenOutput(this)" title="Download as a runnable script">⬇ script</button>
             </span>
           </div>
@@ -1584,7 +1591,7 @@ function renderGenerator(){
         </div>
       </div>
     </div>`;
-  } else {
+  } else if(genMode === 'browse'){
     const filtered = DATA.filter(genBrowseMatches);
     let browseListHtml = '';
     Object.keys(SECTION_META).forEach(secKey=>{
@@ -1631,6 +1638,7 @@ function renderGenerator(){
             <span class="gen-output-label">Generated command</span>
             <span class="gen-output-btns">
               <button type="button" class="copy-btn" onclick="copyGenBrowseOutput(this)">copy</button>
+              <button type="button" class="copy-btn" onclick="addGenBrowseToMerge(this)" title="Add this command to the Merge commands list">+ merge</button>
               <button type="button" class="copy-btn" onclick="downloadGenBrowseOutput(this)" title="Download as a runnable script">⬇ script</button>
             </span>
           </div>
@@ -1646,16 +1654,17 @@ function renderGenerator(){
       </div>
       <div class="gen-build" style="--card-accent:${accent}">${buildHtml}</div>
     </div>`;
+  } else {
+    layoutHtml = combineLayoutHtml();
   }
 
-  main.innerHTML = `<div class="gen-wrap">
-    <div class="gen-intro">
-      <h2>Command generator</h2>
-      <p class="section-sub">${genMode==='recipes' ? "Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command." : "Every command in the reference, in one searchable list. Fill in any blanks and copy."}</p>
-    </div>
-    ${modeToggleHtml}
-    ${layoutHtml}
-    <div class="gen-history-panel">
+  const subtitles = {
+    recipes: "Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command.",
+    browse: "Every command in the reference, in one searchable list. Fill in any blanks and copy.",
+    combine: "Hand-pick any commands from the full reference, put them in the order you want them to run, and merge them into one script — or copy them all at once.",
+  };
+
+  const historyPanelHtml = genMode === 'combine' ? '' : `<div class="gen-history-panel">
       <div class="gen-history-header">
         <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>
         <span class="gen-history-combo">
@@ -1665,7 +1674,16 @@ function renderGenerator(){
         </span>
       </div>
       <div class="gen-history-list" id="genHistoryList">${renderGenHistoryHtml()}</div>
+    </div>`;
+
+  main.innerHTML = `<div class="gen-wrap">
+    <div class="gen-intro">
+      <h2>Command generator</h2>
+      <p class="section-sub">${subtitles[genMode]}</p>
     </div>
+    ${modeToggleHtml}
+    ${layoutHtml}
+    ${historyPanelHtml}
   </div>`;
 }
 
@@ -1707,13 +1725,22 @@ function copyGenOutput(btn){
   }).catch(()=>showCopyFeedback(btn, false));
 }
 
-// ---------- combine: hand-pick any commands from the full reference and merge
-// them into one script. Separate from the history-based "combine" action on the
-// generator page — this one lets you build a list directly, without needing to
-// have generated/copied each command first. ----------
+// ---------- combine/merge: the Command generator's "Merge commands" mode.
+// Two ways to populate this list: (1) hand-pick any reference command from the
+// checkbox picker below ("ref" entries — token-editable, resolved live), or
+// (2) hit "+ merge" on whatever the Quick recipes / Browse tabs just built
+// ("custom" entries — already fully resolved by that tab's own fields, so no
+// further token editing here). Both kinds share one ordered list so you can
+// freely mix hand-picked reference commands with generated ones and reorder
+// the lot before copying/downloading as a single script. ----------
 let combineQuery = '';
-let combineSelectedIds = []; // ordered array of DATA._id — order = the order commands run in
-let combineTokenValues = {}; // id -> {token: value}
+let combineOrder = []; // ordered array of keys: 'ref:<DATA._id>' or 'custom:<uid>' — order = run order
+let combineTokenValues = {}; // DATA._id -> {token: value}, ref entries only
+let combineCustomEntries = {}; // uid -> {uid, label, shell, command}, custom entries only
+let combineCustomSeq = 0;
+
+function refKey(id){ return 'ref:'+id; }
+function customKey(uid){ return 'custom:'+uid; }
 
 function matchesCombine(item){
   if(!combineQuery) return true;
@@ -1738,8 +1765,47 @@ function combineResolvedCommand(item){
   return out;
 }
 
-function renderCombine(){
-  const main = document.getElementById('main');
+// Resolves a combineOrder key into a common shape for both entry kinds.
+function combineEntryForKey(key){
+  if(key.indexOf('ref:') === 0){
+    const id = Number(key.slice(4));
+    const item = DATA.find(i=>i._id===id);
+    if(!item) return null;
+    return { key, type:'ref', id, item, label:item.cmd, shell:item.sh||'cmd', command: combineResolvedCommand(item) };
+  }
+  const uid = key.slice(7);
+  const c = combineCustomEntries[uid];
+  if(!c) return null;
+  return { key, type:'custom', uid, label:c.label, shell:c.shell||'cmd', command:c.command };
+}
+
+// Adds a generated command (from Quick recipes or Browse) to the merge list
+// as a pre-resolved "custom" entry — its fields were already filled in on
+// that tab, so there's nothing further to edit here.
+function addCombineCustomEntry(label, shell, command, btn){
+  if(!command) return;
+  const uid = ++combineCustomSeq;
+  combineCustomEntries[uid] = { uid, label, shell: shell || 'cmd', command };
+  combineOrder.push(customKey(uid));
+  showAddFeedback(btn);
+  setTimeout(renderGenerator, 650);
+}
+
+function addGenRecipeToMerge(btn){
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const command = currentGenOutput();
+  if(!task || !command) return;
+  addCombineCustomEntry(task.label, genState.shell, command, btn);
+}
+
+function addGenBrowseToMerge(btn){
+  const item = currentBrowseItem();
+  const command = currentBrowseOutput();
+  if(!item || !command) return;
+  addCombineCustomEntry(item.cmd, item.sh || 'cmd', command, btn);
+}
+
+function combineLayoutHtml(){
   const filtered = DATA.filter(matchesCombine);
 
   let listHtml = '';
@@ -1748,7 +1814,7 @@ function renderCombine(){
     if(!secItems.length) return;
     listHtml += `<div class="gen-cat-label">${escapeHtml(SECTION_META[secKey].label)}</div>`;
     secItems.forEach(item=>{
-      const checked = combineSelectedIds.includes(item._id);
+      const checked = combineOrder.includes(refKey(item._id));
       const dot = item.sh ? `<span class="gen-task-shell-dot" style="background:${SHELL_COLORS[item.sh]}"></span>` : '';
       listHtml += `<label class="gen-task-btn combine-pick${checked?' active':''}">
         <input type="checkbox" class="combine-pick-check" ${checked?'checked':''} onchange="toggleCombineItem(${item._id})">
@@ -1758,62 +1824,61 @@ function renderCombine(){
   });
   if(!filtered.length) listHtml = `<div class="gen-browse-empty">No commands match "${escapeHtml(combineQuery)}".</div>`;
 
+  const combineItems = combineOrder.map(combineEntryForKey).filter(Boolean);
+
   let buildItemsHtml = '';
-  if(!combineSelectedIds.length){
-    buildItemsHtml = `<div class="gen-browse-placeholder">Check commands on the left to add them here, in the order you want them to run.</div>`;
+  if(!combineItems.length){
+    buildItemsHtml = `<div class="gen-browse-placeholder">Check commands on the left, or hit "+ merge" on a generated command in Quick recipes / Browse, to add them here — in the order you want them to run.</div>`;
   } else {
-    combineSelectedIds.forEach((id, idx)=>{
-      const item = DATA.find(i=>i._id===id);
-      if(!item) return;
-      const tokens = extractTokens(item.cmd);
-      let tokenFieldsHtml = '';
-      tokens.forEach(tok=>{
-        const val = (combineTokenValues[id] && combineTokenValues[id][tok]) || '';
-        tokenFieldsHtml += `<input type="text" class="gen-field-input combine-token-input" data-id="${id}" data-tok="${escapeHtml(tok)}" placeholder="${escapeHtml(tok)}" value="${escapeHtml(val)}" oninput="onCombineTokenInput(this)" autocomplete="off" spellcheck="false">`;
-      });
-      const badge = item.sh
-        ? `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[item.sh]}">${SHELL_LABELS[item.sh]}</span>`
-        : `<span class="shell-tag" style="--shell-color:${SECTION_META[item.s].color}">${SECTION_META[item.s].label}</span>`;
+    combineItems.forEach((entry, idx)=>{
+      const badge = `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[entry.shell] || 'var(--amber)'}">${SHELL_LABELS[entry.shell] || entry.shell}</span>`;
+      let tokenRowHtml = '';
+      if(entry.type === 'ref'){
+        const tokens = extractTokens(entry.item.cmd);
+        if(tokens.length){
+          const tokenFieldsHtml = tokens.map(tok=>{
+            const val = (combineTokenValues[entry.id] && combineTokenValues[entry.id][tok]) || '';
+            return `<input type="text" class="gen-field-input combine-token-input" data-id="${entry.id}" data-tok="${escapeHtml(tok)}" placeholder="${escapeHtml(tok)}" value="${escapeHtml(val)}" oninput="onCombineTokenInput(this)" autocomplete="off" spellcheck="false">`;
+          }).join('');
+          tokenRowHtml = `<div class="combine-token-row">${tokenFieldsHtml}</div>`;
+        }
+      }
+      const sourceTag = entry.type === 'custom' ? `<span class="combine-source-tag" title="Added from the generator">generated</span>` : '';
       buildItemsHtml += `<div class="combine-build-item">
         <div class="combine-build-order">
-          <button type="button" class="combine-order-btn" ${idx===0?'disabled':''} onclick="moveCombineItem(${id},-1)" title="Move earlier">▲</button>
-          <button type="button" class="combine-order-btn" ${idx===combineSelectedIds.length-1?'disabled':''} onclick="moveCombineItem(${id},1)" title="Move later">▼</button>
+          <button type="button" class="combine-order-btn" ${idx===0?'disabled':''} onclick="moveCombineItem('${entry.key}',-1)" title="Move earlier">▲</button>
+          <button type="button" class="combine-order-btn" ${idx===combineItems.length-1?'disabled':''} onclick="moveCombineItem('${entry.key}',1)" title="Move later">▼</button>
         </div>
         <div class="combine-build-main">
           <div class="combine-build-top">
-            <span class="combine-build-cmd">${escapeHtml(item.cmd)}</span>
-            ${badge}
+            <span class="combine-build-cmd">${escapeHtml(entry.label)}</span>
+            <span class="combine-build-tags">${badge}${sourceTag}</span>
           </div>
-          ${tokens.length ? `<div class="combine-token-row">${tokenFieldsHtml}</div>` : ''}
-          <div class="example combine-build-resolved">${escapeHtml(combineResolvedCommand(item))}</div>
+          ${tokenRowHtml}
+          <div class="example combine-build-resolved">${escapeHtml(entry.command)}</div>
         </div>
-        <button type="button" class="combine-remove-btn" onclick="removeCombineItem(${id})" title="Remove">✕</button>
+        <button type="button" class="combine-remove-btn" onclick="removeCombineItem('${entry.key}')" title="Remove">✕</button>
       </div>`;
     });
   }
 
-  const shellsPresent = [...new Set(combineSelectedIds.map(id=>{ const it = DATA.find(i=>i._id===id); return it ? (it.sh||'cmd') : 'cmd'; }))];
-  const downloadHint = combineSelectedIds.length
-    ? `Downloads as ${shellsPresent.map(sk=>SHELL_LABELS[sk]).join(' + ')} — one file per shell${shellsPresent.includes('powershell')?' (PowerShell gets a .ps1 + a .bat launcher)':''}.`
+  const shellsPresent = [...new Set(combineItems.map(e=>e.shell || 'cmd'))];
+  const downloadHint = combineItems.length
+    ? `Downloads as ${shellsPresent.map(sk=>SHELL_LABELS[sk]||sk).join(' + ')} — one file per shell${shellsPresent.includes('powershell')?' (PowerShell gets a .ps1 + a .bat launcher)':''}.`
     : '';
 
-  main.innerHTML = `<div class="gen-wrap">
-    <div class="gen-intro">
-      <h2>Combine commands</h2>
-      <p class="section-sub">Hand-pick any commands from the full reference, put them in the order you want them to run, and merge them into one script — or copy them all at once.</p>
-    </div>
-    <div class="gen-layout">
+  return `<div class="gen-layout">
       <div class="gen-tasks gen-tasks-browse">
         <input type="text" class="gen-browse-search" placeholder="Search all ${DATA.length} commands…" value="${escapeHtml(combineQuery)}" oninput="onCombineSearch(event)" autocomplete="off" spellcheck="false">
         <div class="gen-browse-list">${listHtml}</div>
       </div>
       <div class="gen-build combine-build" style="--card-accent:var(--amber)">
         <div class="combine-build-header">
-          <span class="combine-build-title">${combineSelectedIds.length ? combineSelectedIds.length + ' command' + (combineSelectedIds.length!==1?'s':'') + ' selected' : 'Build list'}</span>
-          ${combineSelectedIds.length ? `<button type="button" class="copy-btn" onclick="clearCombineList()">clear</button>` : ''}
+          <span class="combine-build-title">${combineItems.length ? combineItems.length + ' command' + (combineItems.length!==1?'s':'') + ' selected' : 'Build list'}</span>
+          ${combineItems.length ? `<button type="button" class="copy-btn" onclick="clearCombineList()">clear</button>` : ''}
         </div>
         <div class="combine-build-list">${buildItemsHtml}</div>
-        ${combineSelectedIds.length ? `
+        ${combineItems.length ? `
         <div class="combine-build-footer">
           <span class="combine-download-hint">${downloadHint}</span>
           <span class="gen-output-btns">
@@ -1822,33 +1887,34 @@ function renderCombine(){
           </span>
         </div>` : ''}
       </div>
-    </div>
-  </div>`;
+    </div>`;
 }
 
 function onCombineSearch(e){
   combineQuery = e.target.value;
-  renderCombine();
+  renderGenerator();
 }
 
 function toggleCombineItem(id){
-  const idx = combineSelectedIds.indexOf(id);
-  if(idx === -1) combineSelectedIds.push(id); else combineSelectedIds.splice(idx, 1);
-  renderCombine();
+  const key = refKey(id);
+  const idx = combineOrder.indexOf(key);
+  if(idx === -1) combineOrder.push(key); else combineOrder.splice(idx, 1);
+  renderGenerator();
 }
 
-function removeCombineItem(id){
-  combineSelectedIds = combineSelectedIds.filter(x=>x!==id);
-  renderCombine();
+function removeCombineItem(key){
+  combineOrder = combineOrder.filter(k=>k!==key);
+  if(String(key).indexOf('custom:') === 0) delete combineCustomEntries[String(key).slice(7)];
+  renderGenerator();
 }
 
-function moveCombineItem(id, dir){
-  const idx = combineSelectedIds.indexOf(id);
+function moveCombineItem(key, dir){
+  const idx = combineOrder.indexOf(key);
   if(idx === -1) return;
   const newIdx = idx + dir;
-  if(newIdx < 0 || newIdx >= combineSelectedIds.length) return;
-  [combineSelectedIds[idx], combineSelectedIds[newIdx]] = [combineSelectedIds[newIdx], combineSelectedIds[idx]];
-  renderCombine();
+  if(newIdx < 0 || newIdx >= combineOrder.length) return;
+  [combineOrder[idx], combineOrder[newIdx]] = [combineOrder[newIdx], combineOrder[idx]];
+  renderGenerator();
 }
 
 function onCombineTokenInput(inputEl){
@@ -1863,16 +1929,17 @@ function onCombineTokenInput(inputEl){
 }
 
 function clearCombineList(){
-  combineSelectedIds = [];
+  combineOrder = [];
   combineTokenValues = {};
-  renderCombine();
+  combineCustomEntries = {};
+  renderGenerator();
 }
 
 function combineEntries(){
-  return combineSelectedIds.map(id=>{
-    const item = DATA.find(i=>i._id===id);
-    if(!item) return null;
-    return { label: item.cmd, command: combineResolvedCommand(item), shell: item.sh || 'cmd' };
+  return combineOrder.map(key=>{
+    const e = combineEntryForKey(key);
+    if(!e) return null;
+    return { label: e.label, command: e.command, shell: e.shell || 'cmd' };
   }).filter(Boolean);
 }
 
@@ -1922,7 +1989,7 @@ const SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(--uni
 const SHELL_LABELS = { cmd:'CMD', powershell:'PowerShell', unix:'Unix' };
 
 const SECTION_STORAGE_KEY = 'shellref-last-section';
-const VALID_SECTIONS = ['setup','apps','files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','git','docker','reg','outlook','troubleshoot','cleanup','all','generator','combine','faq'];
+const VALID_SECTIONS = ['setup','apps','files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','git','docker','reg','outlook','troubleshoot','cleanup','all','generator','faq'];
 let savedSection = null;
 try{ savedSection = localStorage.getItem(SECTION_STORAGE_KEY); }catch(e){}
 let activeSection = (savedSection && VALID_SECTIONS.includes(savedSection)) ? savedSection : 'setup';
@@ -1957,12 +2024,6 @@ function render(){
   if(activeSection === 'generator'){
     document.getElementById('resultCount').textContent = '';
     renderGenerator();
-    return;
-  }
-
-  if(activeSection === 'combine'){
-    document.getElementById('resultCount').textContent = '';
-    renderCombine();
     return;
   }
 
@@ -2191,6 +2252,15 @@ function showCopyFeedback(btn, ok){
   btn.textContent = ok ? 'copied' : 'copy failed';
   btn.classList.toggle('copied', ok);
   setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+}
+
+// Same brief inline flash as showCopyFeedback, used by the "+ merge" buttons.
+// The caller re-renders shortly after (to update the Merge commands count
+// badge), so this only needs to hold the flashed label until that repaint.
+function showAddFeedback(btn){
+  if(!btn) return;
+  btn.textContent = 'added ✓';
+  btn.classList.add('copied');
 }
 
 function doCopy(btn){
