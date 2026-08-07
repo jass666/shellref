@@ -415,8 +415,41 @@
 
   .gen-output-wrap{ margin-top:4px; }
   .gen-output-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .gen-output-btns{ display:flex; gap:6px; }
+  .gen-history-select{ margin-right:2px; align-self:flex-start; margin-top:2px; cursor:pointer; }
+  .gen-history-combo{ display:flex; align-items:center; gap:8px; }
+  .gen-history-combo-count{ font-size:11px; color:var(--muted-2); }
   .gen-output-label{ font-size:11.5px; color:var(--muted); }
   .gen-output{ font-size:13px; }
+
+  /* ---- combine section ---- */
+  .combine-pick{ display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .combine-pick-check{ flex-shrink:0; cursor:pointer; accent-color:var(--amber); }
+  .combine-build{ display:flex; flex-direction:column; gap:12px; max-height:640px; }
+  .combine-build-header{ display:flex; align-items:center; justify-content:space-between; }
+  .combine-build-title{ font-size:13px; font-weight:600; color:var(--text); }
+  .combine-build-list{ display:flex; flex-direction:column; gap:10px; overflow-y:auto; padding-right:4px; }
+  .combine-build-item{ display:flex; gap:8px; border:1px solid var(--border); border-radius:9px; padding:10px; background:var(--bg); }
+  .combine-build-order{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .combine-order-btn{
+    background:transparent; border:1px solid var(--border); color:var(--muted-2); border-radius:5px;
+    width:22px; height:20px; font-size:10px; cursor:pointer; line-height:1; transition:all .12s;
+  }
+  .combine-order-btn:hover:not(:disabled){ color:var(--text); border-color:var(--muted-2); }
+  .combine-order-btn:disabled{ opacity:.3; cursor:default; }
+  .combine-build-main{ flex:1; min-width:0; }
+  .combine-build-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .combine-build-cmd{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:600; color:var(--text); word-break:break-word; }
+  .combine-token-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .combine-token-input{ flex:1; min-width:120px; padding:6px 8px; font-size:12px; }
+  .combine-build-resolved{ font-size:12px; margin:0; }
+  .combine-remove-btn{
+    background:transparent; border:1px solid var(--border); color:var(--muted-2); border-radius:6px;
+    width:24px; height:24px; flex-shrink:0; cursor:pointer; font-size:12px; align-self:flex-start; transition:all .12s;
+  }
+  .combine-remove-btn:hover{ color:#e5484d; border-color:#e5484d; }
+  .combine-build-footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:12px; }
+  .combine-download-hint{ font-size:11.5px; color:var(--muted-2); }
 
   .gen-history-panel{ max-width:920px; margin-top:22px; }
   .gen-history-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -522,6 +555,7 @@
     <div class="nav-list" id="navList">
     <button class="nav-btn active" data-target="setup" title="Install & setup"><span class="nav-btn-main"><span class="dot" style="background:var(--setup)"></span><span class="label-text">Install &amp; setup</span></span><span class="count" id="cSetup">0</span></button>
     <button class="nav-btn" data-target="generator" title="Command Generator"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Command generator</span></span></button>
+    <button class="nav-btn" data-target="combine" title="Combine commands into one script"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">Combine commands</span></span></button>
     <div class="nav-divider"></div>
     <button class="nav-btn" data-target="all" title="All commands"><span class="nav-btn-main"><span class="dot" style="background:var(--amber)"></span><span class="label-text">All commands</span></span><span class="count" id="cAll">0</span></button>
     <button class="nav-btn" data-target="apps" title="Apps: Install & Remove"><span class="nav-btn-main"><span class="dot" style="background:var(--apps)"></span><span class="label-text">Apps: Install &amp; Remove</span></span><span class="count" id="cApps">0</span></button>
@@ -1356,12 +1390,15 @@ function formatRelTime(ts){
   return new Date(ts).toLocaleDateString(undefined, {month:'short', day:'numeric'});
 }
 
+let genHistorySelected = new Set();
+
 function renderGenHistoryHtml(){
   if(!genHistory.length){
     return `<div class="gen-history-empty">No saved commands yet — hit <strong>copy</strong> on a generated command to keep it here.</div>`;
   }
   return genHistory.map(h=>`
     <div class="gen-history-item">
+      <input type="checkbox" class="gen-history-select" ${genHistorySelected.has(h.id)?'checked':''} onchange="onHistoryToggleSelect('${h.id}', this.checked)" title="Select for combined script">
       <div class="gen-history-main">
         <div class="gen-history-top">
           <span class="gen-history-label">${escapeHtml(h.label)}</span>
@@ -1373,16 +1410,34 @@ function renderGenHistoryHtml(){
       <div class="gen-history-actions">
         <button type="button" class="copy-btn" onclick="onHistoryCopy('${h.id}', this)">copy</button>
         <button type="button" class="copy-btn" onclick="onHistoryUse('${h.id}')">use</button>
+        <button type="button" class="copy-btn" onclick="downloadHistoryEntry('${h.id}')" title="Download this one command as a script">⬇</button>
         <button type="button" class="copy-btn" onclick="onHistoryRemove('${h.id}')" title="Remove">✕</button>
       </div>
     </div>`).join('');
 }
 
 function updateGenHistoryUI(){
+  // drop selections for entries that no longer exist (removed/cleared)
+  const liveIds = new Set(genHistory.map(h=>h.id));
+  genHistorySelected.forEach(id=>{ if(!liveIds.has(id)) genHistorySelected.delete(id); });
   const listEl = document.getElementById('genHistoryList');
   if(listEl) listEl.innerHTML = renderGenHistoryHtml();
   const countEl = document.getElementById('genHistoryCount');
   if(countEl) countEl.textContent = genHistory.length ? `${genHistory.length} saved` : '';
+  updateGenHistoryComboUI();
+}
+
+function onHistoryToggleSelect(id, checked){
+  if(checked) genHistorySelected.add(id); else genHistorySelected.delete(id);
+  updateGenHistoryComboUI();
+}
+
+function updateGenHistoryComboUI(){
+  const btn = document.getElementById('genHistoryComboBtn');
+  const countEl = document.getElementById('genHistoryComboCount');
+  const n = genHistorySelected.size;
+  if(btn) btn.disabled = n < 2;
+  if(countEl) countEl.textContent = n ? `${n} selected` : '';
 }
 
 let genState = { taskId: null, shell: null, values: {} };
@@ -1520,7 +1575,10 @@ function renderGenerator(){
         <div class="gen-output-wrap">
           <div class="gen-output-top">
             <span class="gen-output-label">Generated command</span>
-            <button type="button" class="copy-btn" onclick="copyGenOutput(this)">copy</button>
+            <span class="gen-output-btns">
+              <button type="button" class="copy-btn" onclick="copyGenOutput(this)">copy</button>
+              <button type="button" class="copy-btn" onclick="downloadGenOutput(this)" title="Download as a runnable script">⬇ script</button>
+            </span>
           </div>
           <div class="example gen-output" id="genOutput">${escapeHtml(currentGenOutput())}</div>
         </div>
@@ -1571,7 +1629,10 @@ function renderGenerator(){
         <div class="gen-output-wrap">
           <div class="gen-output-top">
             <span class="gen-output-label">Generated command</span>
-            <button type="button" class="copy-btn" onclick="copyGenBrowseOutput(this)">copy</button>
+            <span class="gen-output-btns">
+              <button type="button" class="copy-btn" onclick="copyGenBrowseOutput(this)">copy</button>
+              <button type="button" class="copy-btn" onclick="downloadGenBrowseOutput(this)" title="Download as a runnable script">⬇ script</button>
+            </span>
           </div>
           <div class="example gen-output" id="genBrowseOutput">${escapeHtml(currentBrowseOutput())}</div>
         </div>`;
@@ -1597,7 +1658,11 @@ function renderGenerator(){
     <div class="gen-history-panel">
       <div class="gen-history-header">
         <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>
-        <button type="button" class="copy-btn" onclick="onHistoryClear()">clear</button>
+        <span class="gen-history-combo">
+          <span class="gen-history-combo-count" id="genHistoryComboCount"></span>
+          <button type="button" class="copy-btn" id="genHistoryComboBtn" onclick="onHistoryDownloadCombined()" disabled>⬇ combine into script</button>
+          <button type="button" class="copy-btn" onclick="onHistoryClear()">clear</button>
+        </span>
       </div>
       <div class="gen-history-list" id="genHistoryList">${renderGenHistoryHtml()}</div>
     </div>
@@ -1642,6 +1707,192 @@ function copyGenOutput(btn){
   }).catch(()=>showCopyFeedback(btn, false));
 }
 
+// ---------- combine: hand-pick any commands from the full reference and merge
+// them into one script. Separate from the history-based "combine" action on the
+// generator page — this one lets you build a list directly, without needing to
+// have generated/copied each command first. ----------
+let combineQuery = '';
+let combineSelectedIds = []; // ordered array of DATA._id — order = the order commands run in
+let combineTokenValues = {}; // id -> {token: value}
+
+function matchesCombine(item){
+  if(!combineQuery) return true;
+  const q = combineQuery.toLowerCase();
+  return item.cmd.toLowerCase().includes(q)
+    || item.desc.toLowerCase().includes(q)
+    || item.ex.toLowerCase().includes(q)
+    || item.t.toLowerCase().includes(q)
+    || (item.use && item.use.toLowerCase().includes(q))
+    || (item.kw && item.kw.toLowerCase().includes(q));
+}
+
+function combineResolvedCommand(item){
+  const tokens = extractTokens(item.cmd);
+  if(!tokens.length) return item.ex || item.cmd;
+  let out = item.cmd;
+  const vals = combineTokenValues[item._id] || {};
+  tokens.forEach(tok=>{
+    const val = (vals[tok] || '').trim();
+    if(val) out = out.split(`<${tok}>`).join(val);
+  });
+  return out;
+}
+
+function renderCombine(){
+  const main = document.getElementById('main');
+  const filtered = DATA.filter(matchesCombine);
+
+  let listHtml = '';
+  Object.keys(SECTION_META).forEach(secKey=>{
+    const secItems = filtered.filter(i=>i.s===secKey);
+    if(!secItems.length) return;
+    listHtml += `<div class="gen-cat-label">${escapeHtml(SECTION_META[secKey].label)}</div>`;
+    secItems.forEach(item=>{
+      const checked = combineSelectedIds.includes(item._id);
+      const dot = item.sh ? `<span class="gen-task-shell-dot" style="background:${SHELL_COLORS[item.sh]}"></span>` : '';
+      listHtml += `<label class="gen-task-btn combine-pick${checked?' active':''}">
+        <input type="checkbox" class="combine-pick-check" ${checked?'checked':''} onchange="toggleCombineItem(${item._id})">
+        ${dot}${escapeHtml(item.cmd)}
+      </label>`;
+    });
+  });
+  if(!filtered.length) listHtml = `<div class="gen-browse-empty">No commands match "${escapeHtml(combineQuery)}".</div>`;
+
+  let buildItemsHtml = '';
+  if(!combineSelectedIds.length){
+    buildItemsHtml = `<div class="gen-browse-placeholder">Check commands on the left to add them here, in the order you want them to run.</div>`;
+  } else {
+    combineSelectedIds.forEach((id, idx)=>{
+      const item = DATA.find(i=>i._id===id);
+      if(!item) return;
+      const tokens = extractTokens(item.cmd);
+      let tokenFieldsHtml = '';
+      tokens.forEach(tok=>{
+        const val = (combineTokenValues[id] && combineTokenValues[id][tok]) || '';
+        tokenFieldsHtml += `<input type="text" class="gen-field-input combine-token-input" data-id="${id}" data-tok="${escapeHtml(tok)}" placeholder="${escapeHtml(tok)}" value="${escapeHtml(val)}" oninput="onCombineTokenInput(this)" autocomplete="off" spellcheck="false">`;
+      });
+      const badge = item.sh
+        ? `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[item.sh]}">${SHELL_LABELS[item.sh]}</span>`
+        : `<span class="shell-tag" style="--shell-color:${SECTION_META[item.s].color}">${SECTION_META[item.s].label}</span>`;
+      buildItemsHtml += `<div class="combine-build-item">
+        <div class="combine-build-order">
+          <button type="button" class="combine-order-btn" ${idx===0?'disabled':''} onclick="moveCombineItem(${id},-1)" title="Move earlier">▲</button>
+          <button type="button" class="combine-order-btn" ${idx===combineSelectedIds.length-1?'disabled':''} onclick="moveCombineItem(${id},1)" title="Move later">▼</button>
+        </div>
+        <div class="combine-build-main">
+          <div class="combine-build-top">
+            <span class="combine-build-cmd">${escapeHtml(item.cmd)}</span>
+            ${badge}
+          </div>
+          ${tokens.length ? `<div class="combine-token-row">${tokenFieldsHtml}</div>` : ''}
+          <div class="example combine-build-resolved">${escapeHtml(combineResolvedCommand(item))}</div>
+        </div>
+        <button type="button" class="combine-remove-btn" onclick="removeCombineItem(${id})" title="Remove">✕</button>
+      </div>`;
+    });
+  }
+
+  const shellsPresent = [...new Set(combineSelectedIds.map(id=>{ const it = DATA.find(i=>i._id===id); return it ? (it.sh||'cmd') : 'cmd'; }))];
+  const downloadHint = combineSelectedIds.length
+    ? `Downloads as ${shellsPresent.map(sk=>SHELL_LABELS[sk]).join(' + ')} — one file per shell${shellsPresent.includes('powershell')?' (PowerShell gets a .ps1 + a .bat launcher)':''}.`
+    : '';
+
+  main.innerHTML = `<div class="gen-wrap">
+    <div class="gen-intro">
+      <h2>Combine commands</h2>
+      <p class="section-sub">Hand-pick any commands from the full reference, put them in the order you want them to run, and merge them into one script — or copy them all at once.</p>
+    </div>
+    <div class="gen-layout">
+      <div class="gen-tasks gen-tasks-browse">
+        <input type="text" class="gen-browse-search" placeholder="Search all ${DATA.length} commands…" value="${escapeHtml(combineQuery)}" oninput="onCombineSearch(event)" autocomplete="off" spellcheck="false">
+        <div class="gen-browse-list">${listHtml}</div>
+      </div>
+      <div class="gen-build combine-build" style="--card-accent:var(--amber)">
+        <div class="combine-build-header">
+          <span class="combine-build-title">${combineSelectedIds.length ? combineSelectedIds.length + ' command' + (combineSelectedIds.length!==1?'s':'') + ' selected' : 'Build list'}</span>
+          ${combineSelectedIds.length ? `<button type="button" class="copy-btn" onclick="clearCombineList()">clear</button>` : ''}
+        </div>
+        <div class="combine-build-list">${buildItemsHtml}</div>
+        ${combineSelectedIds.length ? `
+        <div class="combine-build-footer">
+          <span class="combine-download-hint">${downloadHint}</span>
+          <span class="gen-output-btns">
+            <button type="button" class="copy-btn" onclick="copyCombineList(this)">copy all</button>
+            <button type="button" class="copy-btn" onclick="downloadCombineList()">⬇ download script(s)</button>
+          </span>
+        </div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function onCombineSearch(e){
+  combineQuery = e.target.value;
+  renderCombine();
+}
+
+function toggleCombineItem(id){
+  const idx = combineSelectedIds.indexOf(id);
+  if(idx === -1) combineSelectedIds.push(id); else combineSelectedIds.splice(idx, 1);
+  renderCombine();
+}
+
+function removeCombineItem(id){
+  combineSelectedIds = combineSelectedIds.filter(x=>x!==id);
+  renderCombine();
+}
+
+function moveCombineItem(id, dir){
+  const idx = combineSelectedIds.indexOf(id);
+  if(idx === -1) return;
+  const newIdx = idx + dir;
+  if(newIdx < 0 || newIdx >= combineSelectedIds.length) return;
+  [combineSelectedIds[idx], combineSelectedIds[newIdx]] = [combineSelectedIds[newIdx], combineSelectedIds[idx]];
+  renderCombine();
+}
+
+function onCombineTokenInput(inputEl){
+  const id = Number(inputEl.getAttribute('data-id'));
+  const tok = inputEl.getAttribute('data-tok');
+  if(!combineTokenValues[id]) combineTokenValues[id] = {};
+  combineTokenValues[id][tok] = inputEl.value;
+  const item = DATA.find(i=>i._id===id);
+  const itemEl = inputEl.closest('.combine-build-item');
+  const resolvedEl = itemEl ? itemEl.querySelector('.combine-build-resolved') : null;
+  if(resolvedEl && item) resolvedEl.textContent = combineResolvedCommand(item);
+}
+
+function clearCombineList(){
+  combineSelectedIds = [];
+  combineTokenValues = {};
+  renderCombine();
+}
+
+function combineEntries(){
+  return combineSelectedIds.map(id=>{
+    const item = DATA.find(i=>i._id===id);
+    if(!item) return null;
+    return { label: item.cmd, command: combineResolvedCommand(item), shell: item.sh || 'cmd' };
+  }).filter(Boolean);
+}
+
+function copyCombineList(btn){
+  const entries = combineEntries();
+  if(!entries.length) return;
+  const text = entries.map(e=>`# ${e.label}\n${e.command}`).join('\n\n');
+  copyToClipboard(text).then(()=>showCopyFeedback(btn, true)).catch(()=>showCopyFeedback(btn, false));
+}
+
+function downloadCombineList(){
+  const entries = combineEntries();
+  if(!entries.length) return;
+  const groups = {};
+  entries.forEach(e=>{ (groups[e.shell] = groups[e.shell] || []).push({label:e.label, command:e.command}); });
+  Object.keys(groups).forEach(shellKey=>{
+    triggerScriptDownload(shellKey, 'shellref-combine-' + shellKey, groups[shellKey]);
+  });
+}
+
 // ---------- render ----------
 const SECTION_META = {
   files: {label:'Files, Folders & Storage', color:'var(--files)', sub:'Finding, moving, permissioning, and archiving files and disks — CMD, PowerShell, and Unix side by side, badged by shell.'},
@@ -1671,7 +1922,7 @@ const SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(--uni
 const SHELL_LABELS = { cmd:'CMD', powershell:'PowerShell', unix:'Unix' };
 
 const SECTION_STORAGE_KEY = 'shellref-last-section';
-const VALID_SECTIONS = ['setup','apps','files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','git','docker','reg','outlook','troubleshoot','cleanup','all','generator','faq'];
+const VALID_SECTIONS = ['setup','apps','files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','git','docker','reg','outlook','troubleshoot','cleanup','all','generator','combine','faq'];
 let savedSection = null;
 try{ savedSection = localStorage.getItem(SECTION_STORAGE_KEY); }catch(e){}
 let activeSection = (savedSection && VALID_SECTIONS.includes(savedSection)) ? savedSection : 'setup';
@@ -1706,6 +1957,12 @@ function render(){
   if(activeSection === 'generator'){
     document.getElementById('resultCount').textContent = '';
     renderGenerator();
+    return;
+  }
+
+  if(activeSection === 'combine'){
+    document.getElementById('resultCount').textContent = '';
+    renderCombine();
     return;
   }
 
@@ -1792,6 +2049,108 @@ function render(){
   });
 
   main.innerHTML = html;
+}
+
+// ---------- script downloads (turn a generated command, or several, into a runnable file) ----------
+// cmd -> single .bat (echo off + pause so the window doesn't vanish on double-click)
+// powershell -> a .ps1 PLUS a companion .bat launcher, mirroring this project's own
+//   Push.ps1 / Push_Launcher.bat pattern: double-clicking a .ps1 directly usually does
+//   nothing (opens Notepad) or hits the default execution-policy block, so the .bat
+//   calls it with -ExecutionPolicy Bypass scoped to that one process only.
+// unix -> a .sh with a shebang (chmod +x note included as a comment, since a browser
+//   download can't set the executable bit for you).
+function slugifyLabel(s){
+  const slug = String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'').slice(0,60);
+  return slug || 'shellref-command';
+}
+
+function downloadTextFile(filename, content){
+  const blob = new Blob([content], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+function buildBatContent(entries){
+  const lines = ['@echo off'];
+  entries.forEach(e=>{ lines.push('REM ' + e.label, e.command, ''); });
+  lines.push('pause');
+  return lines.join('\r\n');
+}
+
+function buildPs1Content(entries){
+  const lines = [];
+  entries.forEach(e=>{ lines.push('# ' + e.label, e.command, ''); });
+  lines.push('Read-Host "Press Enter to exit"');
+  return lines.join('\r\n');
+}
+
+function buildPs1LauncherBat(ps1Filename){
+  return ['@echo off',
+    'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0' + ps1Filename + '"',
+    'pause'].join('\r\n');
+}
+
+function buildShContent(entries){
+  const lines = ['#!/usr/bin/env bash', '# make this executable first: chmod +x <this file>', ''];
+  entries.forEach(e=>{ lines.push('# ' + e.label, e.command, ''); });
+  return lines.join('\n');
+}
+
+// entries: [{label, command}, ...]. Splits into filesystem-appropriate file(s) and
+// triggers the download(s) — two for PowerShell (.ps1 + its .bat launcher), one otherwise.
+function triggerScriptDownload(shellKey, baseLabel, entries){
+  entries = entries.filter(e=>e.command);
+  if(!entries.length) return;
+  const slug = slugifyLabel(baseLabel);
+  if(shellKey==='powershell'){
+    const ps1Name = slug + '.ps1';
+    downloadTextFile(ps1Name, buildPs1Content(entries));
+    downloadTextFile(slug + '-run.bat', buildPs1LauncherBat(ps1Name));
+  } else if(shellKey==='unix'){
+    downloadTextFile(slug + '.sh', buildShContent(entries));
+  } else {
+    downloadTextFile(slug + '.bat', buildBatContent(entries));
+  }
+}
+
+function downloadGenOutput(){
+  const task = GENERATORS.find(t=>t.id===genState.taskId);
+  const command = currentGenOutput();
+  if(!task || !command) return;
+  triggerScriptDownload(genState.shell, task.label, [{label: task.label, command}]);
+}
+
+function downloadGenBrowseOutput(){
+  const item = currentBrowseItem();
+  const command = currentBrowseOutput();
+  if(!item || !command) return;
+  triggerScriptDownload(item.sh || 'cmd', item.cmd, [{label: item.cmd, command}]);
+}
+
+function downloadHistoryEntry(id){
+  const h = genHistory.find(x=>x.id===id);
+  if(!h || !h.command) return;
+  triggerScriptDownload(h.shell || 'cmd', h.label, [{label: h.label, command: h.command}]);
+}
+
+// Combines every checked history entry into one script per shell present in the
+// selection (oldest-first, so the script runs in the order the commands were made),
+// so a mixed selection downloads e.g. one .bat and one .ps1+.bat pair rather than
+// silently dropping entries or producing an invalid mixed-syntax file.
+function onHistoryDownloadCombined(){
+  const selected = genHistory.filter(h=>genHistorySelected.has(h.id) && h.command);
+  if(selected.length < 2) return;
+  const groups = {};
+  selected.slice().reverse().forEach(h=>{
+    const key = h.shell || 'cmd';
+    (groups[key] = groups[key] || []).push({label: h.label, command: h.command});
+  });
+  Object.keys(groups).forEach(shellKey=>{
+    triggerScriptDownload(shellKey, 'shellref-combined-' + shellKey, groups[shellKey]);
+  });
 }
 
 // Shared clipboard helper. navigator.clipboard.writeText() silently rejects

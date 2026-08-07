@@ -2,6 +2,25 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v5.8 - New "Combine commands" section: hand-pick multiple commands directly and merge them into one script
+
+* New top-level nav item, **Combine commands**, separate from the Command Generator's history-based combine (which needed you to have already generated/copied each command first). This one is a dedicated picker:
+  - Left pane: the same full-text search as "Browse all commands," but every result is a **checkbox** (not a single-select), so you can tick as many commands as you want across every section.
+  - Right pane ("Build list"): the checked commands, in order, each showing its resolved text (with inline inputs to fill any `<Token>` placeholders — same substitution the generator uses), a shell badge, **▲/▼** buttons to reorder, and a **✕** to drop it from the list.
+  - Footer actions once 1+ commands are picked: **copy all** (concatenates every resolved command to the clipboard, each preceded by a `# label` comment) and **⬇ download script(s)**, which reuses the same `triggerScriptDownload` machinery from v5.7 — groups the selection by shell and downloads one file per shell present (CMD → `.bat`, PowerShell → `.ps1` + `.bat` launcher, Unix → `.sh`), oldest-added-first within each group.
+* New state/helpers: `combineSelectedIds` (ordered array, doubles as both "is it picked" and "what order"), `combineTokenValues`, `matchesCombine`, `combineResolvedCommand`, `renderCombine`, plus the usual `on*`/`toggle*`/`remove*`/`move*` handlers. Token edits patch just the one resolved-command `<div>` in place (`closest('.combine-build-item')`) rather than a full re-render, so typing in a token field doesn't lose focus.
+* Verified: full inline script re-parses cleanly (`node --check`); confirmed exactly one `data-target="combine"` nav button, `combine` present once in `VALID_SECTIONS`, and each of the 12 new functions defined exactly once.
+
+## v5.7 - Command Generator: download generated commands as runnable scripts, and combine several history entries into one
+
+* **New "⬇ script" button** next to **copy** on every generated command (both Quick recipes and Browse-all modes). Instead of copy-pasting into a terminal, it downloads a ready-to-run file:
+  - **CMD** → a single `.bat` (`@echo off` + the command + `pause`, so the window stays open to show the result instead of flashing shut).
+  - **PowerShell** → **two files**: a `.ps1` containing the actual command, plus a companion `.bat` launcher that runs it via `powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0<script>.ps1"`. This mirrors the project's own `Push.ps1` / `Push_Launcher.bat` pattern — double-clicking a `.ps1` directly usually just opens it in Notepad or hits the default execution-policy block, so the `.bat` is the actual double-click entry point and only bypasses policy for that one process.
+  - **Unix/WSL** → a `.sh` with a `#!/usr/bin/env bash` shebang and a leading comment reminding you to `chmod +x` it first (a browser download can't set the executable bit).
+* **"Recent commands" history panel** now has a checkbox on every saved entry, plus a **"⬇ combine into script"** button in the header (enabled once 2+ are checked). Combining groups the selection by shell — a mixed selection downloads one file per shell present (e.g. a `.bat` and a `.ps1`+`.bat` pair) rather than dropping entries or producing invalid mixed-syntax output — and orders commands oldest-first within each file so the script runs in the sequence they were originally generated. Each combined command is preceded by a `REM`/`#` comment naming the task it came from. Each history entry also gets its own standalone **⬇** download action alongside the existing copy/use/remove.
+* New shared helpers: `slugifyLabel`, `downloadTextFile` (Blob + temporary `<a download>`, revokes the object URL after a beat), `buildBatContent` / `buildPs1Content` / `buildPs1LauncherBat` / `buildShContent`, and `triggerScriptDownload(shellKey, label, entries)` as the single entry point used by the per-output button, the per-history-item button, and the combine action alike.
+* Verified: full inline script re-parses cleanly (`node --check`); `slugifyLabel` and `buildBatContent` exercised directly against sample labels/commands and produced the expected filenames and `\r\n`-joined `.bat` content.
+
 ## v5.6 - Command Generator: new "Delete all empty subfolders" quick recipe
 
 * **New 15th quick recipe**, `id:'delete-empty-folders'`, label **"Delete all empty subfolders"**, filed under **Files** right after "Delete all files with an extension" — closes a cleanup gap none of the existing Files recipes covered (they all target files, never folder structure).
