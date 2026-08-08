@@ -1452,8 +1452,13 @@ function initGenState(taskId, preferredShell){
   const shellKeys = Object.keys(task.shells);
   const shell = (preferredShell && shellKeys.includes(preferredShell)) ? preferredShell : shellKeys[0];
   const params = task.shells[shell].params;
+  // Only carry forward previously-entered values when staying on the same
+  // recipe (e.g. switching shell tabs) — a genuine task switch still resets.
+  const prevValues = (genState.taskId === taskId) ? genState.values : {};
   const values = {};
-  params.forEach(p=>{ values[p.k] = p.d || ''; });
+  params.forEach(p=>{
+    values[p.k] = (prevValues[p.k] !== undefined) ? prevValues[p.k] : (p.d || '');
+  });
   genState = { taskId, shell, values };
 }
 

@@ -2,6 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v6.1 - Fix: switching shell tabs in Quick recipes no longer clears fields you'd already filled in
+
+* **Bug**: `initGenState()` unconditionally rebuilt `genState.values` from each field's default (`p.d || ''`) on every call. `onGenShellClick()` calls `initGenState(genState.taskId, shellKey)` to switch tabs within the *same* recipe, so any values already typed (e.g. a folder path, an extension list) were silently wiped the moment you tried CMD vs PowerShell vs Unix on the same task.
+* **Fix**: `initGenState()` now only resets to defaults on a genuine task switch. When `taskId` matches the outgoing `genState.taskId` (i.e. this is a shell-tab switch, not a new recipe), it carries forward the previous `genState.values` and only falls back to a field's default when that key wasn't already set — so shared fields (folder, extension, etc.) survive the shell switch, and only fields unique to the newly-selected shell's param list get their defaults.
+* Task switches (`onGenTaskClick` to a *different* task) are unaffected and still reset fields, since a different recipe has its own field set and stale values from an unrelated task shouldn't carry over.
+* Verified: full inline script re-parses cleanly (`node --check`).
+
 ## v6.0 - "+ merge" button: add a Quick recipes / Browse output straight into the merge list without switching tabs
 
 * **New "+ merge" button** next to **copy** (and **⬇ script**) on every generated command in both **Quick recipes** and **Browse all commands** mode. One click adds that exact generated command — already fully filled in with whatever fields/tokens you set — onto the end of the **Merge commands** list, tagged `generated` so it's visually distinct from a hand-picked reference card. No need to switch tabs, re-find the command in the picker, or re-fill its tokens.
