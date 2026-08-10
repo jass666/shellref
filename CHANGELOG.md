@@ -2,6 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v6.2 - Disk Cleanup: added `cleanmgr` / `/sageset` / `/sagerun` coverage
+
+* **New subsection "Disk Cleanup Manager (cleanmgr)"** under the existing Disk Cleanup section, filling a gap where only manual folder-deletion commands existed — the built-in Windows Disk Cleanup utility and its automation switches were missing entirely.
+* **6 new cards**: `cleanmgr /sageset:n` (configure a saved cleanup profile via the settings dialog), `cleanmgr /sagerun:n` (run a saved profile silently, no prompts, sweeps all drives), a CMD registry-automation recipe that writes `StateFlagsNNNN` DWORDs directly under `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches` to build a full "everything checked" profile without ever opening the GUI, the PowerShell equivalent of the same trick (`Get-ChildItem` + `New-ItemProperty`, remotable), `cleanmgr /d <drive>` (target a specific drive in the interactive tool), and `cleanmgr /verylowdisk` / `/lowdisk` (undocumented switches for fully unattended or pre-checked cleanup — the same mode Windows triggers itself on critically low disk space).
+* Researched against current Microsoft Learn docs, ss64 reference, and community writeups (nullteilerfrei, BatchPatch, Carl Webster's Set-SageSet script) to confirm switch behavior and the exact registry path, including the `/d` + `/sagerun` gotcha (the drive switch is ignored by sagerun, which always enumerates every drive) and the value range differences documented across sources (0–65535 vs 0–9999 depending on source).
+* Verified: DATA array re-parses cleanly (`node -e` eval check), entry count 332 → 338, all 6 new entries tagged `s:'cleanup'` so they're picked up automatically by the existing dynamic stat counters (no hardcoded counts to update).
+
 ## v6.1 - Fix: switching shell tabs in Quick recipes no longer clears fields you'd already filled in
 
 * **Bug**: `initGenState()` unconditionally rebuilt `genState.values` from each field's default (`p.d || ''`) on every call. `onGenShellClick()` calls `initGenState(genState.taskId, shellKey)` to switch tabs within the *same* recipe, so any values already typed (e.g. a folder path, an extension list) were silently wiped the moment you tried CMD vs PowerShell vs Unix on the same task.
