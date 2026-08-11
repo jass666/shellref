@@ -2,6 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v6.3 - Disk Cleanup: deep space-reclaim commands + hero stats redesign
+
+* **New subsection "Deep space reclaim (advanced)"** under Disk Cleanup, covering the tools people reach for once temp folders and cleanmgr aren't enough: `Dism.exe /online /Cleanup-Image /AnalyzeComponentStore` (check WinSxS reclaimable size before touching anything), `/StartComponentCleanup` (safe standard WinSxS shrink), `/StartComponentCleanup /ResetBase` (max WinSxS shrink, irreversible — permanently drops the ability to uninstall current updates), `vssadmin list shadows` / `vssadmin delete shadows` (System Restore / VSS snapshot cleanup, often the single largest space source, irreversible), `powercfg /hibernate off` (deletes hiberfil.sys, frees space ≈ installed RAM), and the `takeown` / `icacls` / `rmdir` fallback sequence for removing a stuck `Windows.old` folder when Disk Cleanup can't. Irreversible commands are flagged with a ⚠ in the description.
+* Researched against Microsoft Learn (DISM component servicing, vssadmin), windowsforum.com's WinSxS/VSS/hibernation reclaim checklist, and community how-tos (digitalcitizen.life, itechtics, ghacks) for the Windows.old removal sequence — cross-checked so the "safe vs irreversible" framing in each card description is accurate, not just "run this and hope."
+* Disk Cleanup entry count: 14 → 20. Total library: 338 → 344.
+* **Hero stats redesigned**: the flat number+label grid at the top of the page (17 static counts) is gone — replaced with clickable pills that jump straight to that section (reusing the sidebar's nav logic via a new shared `goToSection()` function, so pills and sidebar nav buttons now stay in sync). Disk Cleanup is pinned first with a "most used" badge and its section color, since usage data showed it's the most-referenced category. Counts are still live in the sidebar nav (`cCleanup`, `cFiles`, etc.) — only the redundant, non-interactive hero numbers were removed.
+
 ## v6.2 - Disk Cleanup: added `cleanmgr` / `/sageset` / `/sagerun` coverage
 
 * **New subsection "Disk Cleanup Manager (cleanmgr)"** under the existing Disk Cleanup section, filling a gap where only manual folder-deletion commands existed — the built-in Windows Disk Cleanup utility and its automation switches were missing entirely.

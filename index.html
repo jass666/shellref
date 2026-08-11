@@ -179,10 +179,9 @@
   }
   .hero h1 .accent{ color:var(--amber); }
   .hero p{ color:var(--muted); font-size:15px; line-height:1.6; max-width:46ch; margin:0 0 20px;}
-  .hero .stats{ display:flex; gap:22px; flex-wrap:wrap; }
-  .hero .stats div{ font-family:'JetBrains Mono', monospace; }
-  .hero .stats .n{ font-size:20px; font-weight:600; color:var(--text); }
-  .hero .stats .l{ font-size:11px; color:var(--muted-2); text-transform:uppercase; letter-spacing:.06em; }
+  .hero-lines{ display:flex; flex-direction:column; gap:6px; max-width:48ch; }
+  .hero-lines p{ font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--muted); margin:0; line-height:1.5; }
+  .hero-lines p strong{ color:var(--text); font-weight:600; }
 
   .terminal{
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
@@ -524,26 +523,13 @@
 
 <section class="hero">
   <div>
-    <h1>Organized by what you're trying to do.<br>Not which <span class="accent">shell</span> you're in.</h1>
-    <p>CMD, PowerShell, WSL, and the Unix tools that live inside it — grouped by task (files, processes, networking, text) with a badge showing which shell each command runs in, so you're not hunting through four separate lists for the same job. Can't find what you need? The <strong>command generator</strong> in the sidebar builds it for you.</p>
-    <div class="stats">
-      <div><div class="n" id="statFiles">0</div><div class="l">files &amp; storage</div></div>
-      <div><div class="n" id="statProcs">0</div><div class="l">processes &amp; jobs</div></div>
-      <div><div class="n" id="statNetops">0</div><div class="l">networking</div></div>
-      <div><div class="n" id="statSearch">0</div><div class="l">search &amp; grep</div></div>
-      <div><div class="n" id="statDataproc">0</div><div class="l">data processing</div></div>
-      <div><div class="n" id="statScripting">0</div><div class="l">scripting</div></div>
-      <div><div class="n" id="statUseradmin">0</div><div class="l">users &amp; policy</div></div>
-      <div><div class="n" id="statSysdiag">0</div><div class="l">system info</div></div>
-      <div><div class="n" id="statWsl">0</div><div class="l">wsl</div></div>
-      <div><div class="n" id="statGit">0</div><div class="l">git</div></div>
-      <div><div class="n" id="statDocker">0</div><div class="l">docker</div></div>
-      <div><div class="n" id="statSetup">0</div><div class="l">installs</div></div>
-      <div><div class="n" id="statApps">0</div><div class="l">app install/remove</div></div>
-      <div><div class="n" id="statReg">0</div><div class="l">registry</div></div>
-      <div><div class="n" id="statOutlook">0</div><div class="l">outlook</div></div>
-      <div><div class="n" id="statTroubleshoot">0</div><div class="l">fixes</div></div>
-      <div><div class="n" id="statCleanup">0</div><div class="l">disk cleanup</div></div>
+    <h1>One place for every command you actually need.</h1>
+    <p>Find commands by task — files, processes, networking, text, and more — across CMD, PowerShell, WSL, and Unix.</p>
+    <p>No shell-hopping. No digging through docs. Just find it, copy it, run it.</p>
+    <div class="hero-lines">
+      <p>• <strong>344 commands</strong> · 17 categories</p>
+      <p>• CMD · PowerShell · WSL · Unix</p>
+      <p>• Built for getting things done</p>
     </div>
   </div>
   <div class="terminal">
@@ -877,6 +863,12 @@ const DATA = [
 {s:'cleanup', t:'Disk Cleanup Manager (cleanmgr)', sh:'powershell', cmd:'Automate sageset via registry (PowerShell)', desc:'PowerShell version of the same trick — enumerate every VolumeCaches subkey and set its StateFlags value for the chosen profile number to 2 (checked), then run cleanmgr against that profile. Same effect as manually ticking every box in /sageset, but scriptable and remotable (e.g. via Invoke-Command against multiple machines).', use:'Rolling the same full-cleanup profile out to a batch of Windows machines from a PowerShell deployment script instead of RDP-ing into each one.', ex:'$profile = 1\n$key = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VolumeCaches"\nGet-ChildItem $key | ForEach-Object {\n  New-ItemProperty -Path $_.PsPath -Name "StateFlags$($profile.ToString(\'0000\'))" -Value 2 -PropertyType DWORD -Force | Out-Null\n}\nStart-Process cleanmgr -ArgumentList "/sagerun:$profile" -Wait', kw:'powershell cleanmgr sageset statflags automate registry volumecaches remote deploy'},
 {s:'cleanup', t:'Disk Cleanup Manager (cleanmgr)', sh:'cmd', cmd:'cleanmgr /d C:', desc:'Opens Disk Cleanup targeting a specific drive letter, skipping the drive-picker dialog. Only affects which drive the interactive tool scans for the boot-drive-only categories (like "Previous Windows installation(s)") — it\'s ignored by /sagerun, which always sweeps every drive regardless of /d.', use:'Jump straight into cleaning a specific secondary data drive without clicking through the drive selector first.', ex:'cleanmgr /d D:', kw:'cleanmgr select drive disk cleanup specific drive letter'},
 {s:'cleanup', t:'Disk Cleanup Manager (cleanmgr)', sh:'cmd', cmd:'cleanmgr /verylowdisk', desc:'Undocumented switch that runs Disk Cleanup with every checkbox pre-selected and zero prompts — it just cleans and closes. This is the same mode Windows triggers itself when free space drops critically low. /lowdisk is the same idea but still shows the dialog with everything pre-checked, letting you review before confirming.', use:'A machine has genuinely run out of space and needs the fastest possible unattended reclaim, no review needed.', ex:'cleanmgr /verylowdisk\ncleanmgr /lowdisk', kw:'cleanmgr verylowdisk lowdisk undocumented automatic full cleanup no prompt low disk space'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'Dism.exe /online /Cleanup-Image /AnalyzeComponentStore', desc:'Reports the real reclaimable size of the WinSxS component store (C:\\Windows\\WinSxS) — the folder that holds every installed update\'s component versions so they can be rolled back. File Explorer\'s size for this folder is misleading because of hard links, so this is the only trustworthy number. It also tells you whether a cleanup is actually recommended ("Component Store Cleanup Recommended: Yes/No"), so you\'re not running cleanup commands blind.', use:'Check before you clean — confirms whether WinSxS cleanup is worth running and roughly how much space you\'d get back.', ex:'Dism.exe /online /Cleanup-Image /AnalyzeComponentStore', kw:'dism analyzecomponentstore winsxs check reclaimable space component store size'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'Dism.exe /online /Cleanup-Image /StartComponentCleanup', desc:'The safe, Microsoft-supported way to shrink WinSxS: removes superseded component versions that are already past their 30-day rollback window. This is the same cleanup Windows runs automatically in the background on a schedule — running it manually just does it now instead of waiting. Doesn\'t touch anything you could still need to roll back an update.', use:'WinSxS is bloated and AnalyzeComponentStore confirmed cleanup is recommended, but you don\'t want to lose the ability to uninstall recent updates.', ex:'Dism.exe /online /Cleanup-Image /StartComponentCleanup', kw:'dism startcomponentcleanup winsxs safe shrink component store reclaim disk space'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase', desc:'⚠ Irreversible. Same as the standard cleanup but goes further: permanently deletes every superseded component immediately (skips the 30-day grace period) and makes all currently installed updates permanent. After this runs, you can no longer uninstall any update that was on the system when you ran it. Typically frees noticeably more space than the standard cleanup, sometimes several GB.', use:'System has been stable for a while post-update, you\'re confident you won\'t need to roll anything back, and you want the maximum WinSxS reduction.', ex:'Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase', kw:'dism resetbase winsxs permanent irreversible maximum cleanup component store'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'vssadmin list shadows / vssadmin delete shadows', desc:'⚠ Irreversible. Lists (or permanently deletes) Volume Shadow Copy snapshots — the mechanism behind System Restore points and some backup software. These snapshots silently accumulate in System Volume Information and can consume tens of GB, often more than any other single source on this list. Always list first to see what exists before deleting.', use:'Free drive is nearly full and you don\'t rely on System Restore points to undo a bad driver or update.', ex:'vssadmin list shadows\nvssadmin delete shadows /for=C: /oldest\nvssadmin delete shadows /for=C: /all', kw:'vssadmin shadow copies delete system restore points vss free space irreversible'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'powercfg /hibernate off', desc:'Disables hibernation and deletes the hidden C:\\hiberfil.sys file, which is sized roughly equal to your installed RAM (so 16 GB RAM ≈ 16 GB reclaimed). Also disables Fast Startup, since that hybrid-shutdown feature depends on the same file. Re-enable any time with `powercfg /hibernate on` — Windows recreates the file.', use:'You never use Hibernate or Fast Startup and want back the several GB that file is quietly holding.', ex:'powercfg /hibernate off', kw:'powercfg hibernate off hiberfil.sys delete disable fast startup reclaim ram sized file'},
+{s:'cleanup', t:'Deep space reclaim (advanced)', sh:'cmd', cmd:'Remove Windows.old (post-upgrade leftover)', desc:'Windows keeps the previous installation in C:\\Windows.old for about 10 days after a feature upgrade so you can roll back, and it can easily hold 10–30+ GB. Windows normally deletes it automatically once that window passes, or via Disk Cleanup → "Previous Windows installation(s)". This command-line route is the fallback for when the folder refuses to delete through those normal channels: take ownership, grant full permissions, then remove it recursively.', use:'The upgrade is confirmed stable, Disk Cleanup couldn\'t remove Windows.old (permission errors), and you need the space back now rather than waiting out the auto-delete window.', ex:'takeown /F C:\\Windows.old\\* /R /A\nicacls C:\\Windows.old /grant administrators:F /T\nrmdir /S /Q C:\\Windows.old', kw:'windows.old remove delete previous installation takeown icacls rmdir upgrade leftover'},
 {s:'troubleshoot', t:'Sticky Keys & accessibility popups', cmd:'Disable Sticky Keys prompt', desc:'Turns off the "Do you want to turn on Sticky Keys?" popup that appears after pressing Shift five times — the single most common "why is this weird box popping up" complaint on shared/shop-floor machines. This disables the prompt and the feature itself, not just the sound.', use:'A shared showroom or counter PC keeps popping up the Sticky Keys dialog every time someone taps Shift a few times in a row.', ex:'reg add "HKCU\\Control Panel\\Accessibility\\StickyKeys" /v Flags /t REG_SZ /d 506 /f', kw:'remove disable sticky keys popup shift five times annoying'},
 {s:'troubleshoot', t:'Sticky Keys & accessibility popups', cmd:'Disable Filter Keys prompt', desc:'Turns off the popup that appears when a key is held down too long (offers to turn on Filter Keys), which shows up on the same shared machines as the Sticky Keys prompt.', use:'The same shared machine also occasionally pops up a "Filter Keys" prompt when a key is pressed and held.', ex:'reg add "HKCU\\Control Panel\\Accessibility\\Keyboard Response" /v Flags /t REG_SZ /d 122 /f', kw:'remove disable filter keys popup held key annoying'},
 {s:'troubleshoot', t:'Sticky Keys & accessibility popups', cmd:'Disable Toggle Keys prompt', desc:'Turns off the popup offering to turn on Toggle Keys (the beep when Caps/Num/Scroll Lock changes), the third of the three accessibility shortcut prompts.', use:'Rounding out the same cleanup — stop all three keyboard-shortcut accessibility popups on a shared machine, not just Sticky Keys.', ex:'reg add "HKCU\\Control Panel\\Accessibility\\ToggleKeys" /v Flags /t REG_SZ /d 58 /f', kw:'remove disable toggle keys popup beep annoying'},
@@ -2280,15 +2272,15 @@ function doCopy(btn){
 }
 
 // ---------- nav ----------
+function goToSection(target){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-target')===target));
+  activeSection = target;
+  try{ localStorage.setItem(SECTION_STORAGE_KEY, activeSection); }catch(e){}
+  render();
+  window.scrollTo({top: document.querySelector('.layout').offsetTop - 70, behavior:'smooth'});
+}
 document.querySelectorAll('.nav-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    activeSection = btn.getAttribute('data-target');
-    try{ localStorage.setItem(SECTION_STORAGE_KEY, activeSection); }catch(e){}
-    render();
-    window.scrollTo({top: document.querySelector('.layout').offsetTop - 70, behavior:'smooth'});
-  });
+  btn.addEventListener('click', ()=> goToSection(btn.getAttribute('data-target')));
 });
 
 // sync the active nav button with the restored/default section (markup hardcodes 'setup')
