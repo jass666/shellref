@@ -2,6 +2,24 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.0 - Split the single-file build into a modular structure (data/sections/generator/app/css)
+
+* **The project is no longer one 2,390-line `index.html`.** Everything has been split into purpose-built files with a single source of truth for each concern, so adding a command or a category no longer means finding the right spot inside one giant file:
+  - `index.html` — markup shell only (head, header, hero, sidebar shell, footer). No command data or app logic.
+  - `css/styles.css` — all styling, unchanged, including the dark/light theme color variables.
+  - `js/data.js` — **`DATA`** (all 344 command cards) and **`FAQ_DATA`** (13 FAQ entries). This is now the only file touched to add/edit/remove a command. Carries a header comment documenting every field.
+  - `js/sections.js` — **new file.** `SECTION_META` (label/color/description per category) is now the single source of truth for categories, plus a new `buildNavConfig()` function that generates the sidebar's button list and order (previously 20 hand-written `<button>` elements in `index.html`, kept in sync by hand with `SECTION_META`, `VALID_SECTIONS`, and the CSS color vars separately).
+  - `js/generators.js` — the Command Generator, Browse mode, Merge/Combine list, and FAQ tab renderer (unchanged logic, relocated).
+  - `js/app.js` — search/filter, card rendering, sidebar (now built dynamically — see below), theme toggle, script/history downloads, hero terminal typer.
+* **Sidebar is now generated, not hardcoded.** `renderNav()` (new, in `js/app.js`) builds every sidebar button from `buildNavConfig()` at load time and wires its click handler, instead of `index.html` shipping 20 pre-written buttons that JS then had to find by `data-target`/id and keep in sync. Verified the generated order is byte-for-byte identical to the old hardcoded order: `setup, generator, ⎯, all, apps, dataproc, cleanup, docker, faq, files, git, netops, outlook, procs, reg, scripting, search, sysdiag, troubleshoot, useradmin, wsl`.
+* **Removed three duplicated hardcoded section lists** that previously had to be updated by hand in lockstep whenever a category changed:
+  - The 20-button sidebar markup in `index.html` → replaced by `renderNav()` + `SECTION_META`.
+  - The inline 11-category array inside `render()`'s "All commands" branch → replaced by `ALL_VIEW_SECTIONS` (`js/sections.js`), one named constant instead of a magic array buried in the render function.
+  - The 17-entry id-suffix map inside `setStats()` (`files→Files, procs→Procs, ...`) used to find each `c<Section>` count span by hand-built id → replaced by a `data-count-for="<key>"` attribute stamped on each button by `renderNav()`, matched generically in the new `setStats()`.
+* No behavior change intended anywhere in this pass — this is a structural refactor, not a content or feature change. Verified with a full headless run (jsdom): all 344 `DATA` entries and 13 `FAQ_DATA` entries load, all 17 categories register in `SECTION_META`, all 20 nav buttons render in the original order, section switching/search/generator/FAQ tabs all produce identical output to the pre-refactor single file, and the "All commands" view still excludes exactly the same 6 categories (git, docker, reg, outlook, troubleshoot, cleanup) it always did.
+* Added `MANUAL.md` — step-by-step guide (with copy-paste templates) for adding a new command or a new category under the new structure.
+* `Push.ps1` / `Push_Launcher.bat` are unaffected — both just `git add -A` the folder, so the new multi-file layout deploys to Cloudflare Pages / Netlify exactly as before, still with no build step.
+
 ## v6.3 - Disk Cleanup: deep space-reclaim commands + hero stats redesign
 
 * **New subsection "Deep space reclaim (advanced)"** under Disk Cleanup, covering the tools people reach for once temp folders and cleanmgr aren't enough: `Dism.exe /online /Cleanup-Image /AnalyzeComponentStore` (check WinSxS reclaimable size before touching anything), `/StartComponentCleanup` (safe standard WinSxS shrink), `/StartComponentCleanup /ResetBase` (max WinSxS shrink, irreversible — permanently drops the ability to uninstall current updates), `vssadmin list shadows` / `vssadmin delete shadows` (System Restore / VSS snapshot cleanup, often the single largest space source, irreversible), `powercfg /hibernate off` (deletes hiberfil.sys, frees space ≈ installed RAM), and the `takeown` / `icacls` / `rmdir` fallback sequence for removing a stuck `Windows.old` folder when Disk Cleanup can't. Irreversible commands are flagged with a ⚠ in the description.
