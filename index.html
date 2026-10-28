@@ -76,12 +76,16 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
 </button>
 
-<!-- Load order matters: data before sections/generators/app, which all
-     reference DATA / SECTION_META as plain globals (no bundler, no build
-     step — this stays a drop-in static site for Cloudflare Pages/Netlify). -->
+<!-- Load order matters: data, then your library file (my-commands.js), then
+     sections, then mine.js (injects saved commands into DATA), then the
+     generator + file builder, then app. All share plain globals (no bundler,
+     no build step — this stays a drop-in static site for Cloudflare Pages/Netlify). -->
 <script src="js/data.js"></script>
+<script src="js/my-commands.js"></script>
 <script src="js/sections.js"></script>
+<script src="js/mine.js"></script>
 <script src="js/generators.js"></script>
+<script src="js/filebuilder.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

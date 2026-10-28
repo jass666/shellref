@@ -33,6 +33,7 @@
     --scripting:#3FB6C4;
     --useradmin:#A0616A;
     --sysdiag:#6B8F71;
+    --mine:#C6D84B;
     --header-bg:rgba(11,14,19,0.88);
     --example-bg:rgba(255,255,255,0.02);
     --example-text:#B9C0CE;
@@ -78,6 +79,7 @@
     --scripting:#1E8A96;
     --useradmin:#8A4550;
     --sysdiag:#4C6B52;
+    --mine:#66740C;
   }
   html{ transition:background-color .2s ease; }
   *{box-sizing:border-box;}
@@ -480,3 +482,64 @@
   footer{ max-width:var(--container-max); margin:0 auto; padding:20px 24px 60px; color:var(--muted-2); font-size:12px; border-top:1px solid var(--border-soft); }
 
   @media (prefers-reduced-motion: reduce){ .cursor{ animation:none; } }
+
+  /* ===== My saved commands + File builder (v7.1) ===== */
+  .mine-toolbar{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 10px; }
+  .mine-btn{
+    background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px;
+    padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; transition:all .12s;
+    display:inline-flex; align-items:center;
+  }
+  .mine-btn:hover{ color:var(--text); border-color:var(--muted-2); }
+  .mine-btn.primary{ background:var(--amber); border-color:var(--amber); color:#0B0E13; font-weight:600; }
+  .mine-btn.primary:hover{ color:#0B0E13; filter:brightness(1.06); }
+  .mine-msg{ font-size:12.5px; padding:8px 12px; border-radius:8px; margin:0 0 10px; border:1px solid var(--border); }
+  .mine-msg.ok{ color:var(--unix); border-color:var(--unix); }
+  .mine-msg.err{ color:#e5484d; border-color:#e5484d; }
+  .mine-stats{ font-size:12px; color:var(--muted-2); margin:6px 0 4px; }
+  .mine-form{ background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--mine); border-radius:10px; padding:16px; margin:0 0 14px; max-width:920px; }
+  .mine-form-title{ font-family:'Space Grotesk', sans-serif; font-size:15px; font-weight:600; margin-bottom:12px; }
+  .mine-form-btns{ display:flex; gap:8px; }
+  .mine-src{ font-size:12px; color:var(--muted-2); margin:0 0 8px; }
+  .mine-src a{ color:var(--amber); text-decoration:none; }
+  .mine-src a:hover{ text-decoration:underline; }
+  .mine-card-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .mine-card-actions{ display:flex; gap:6px; }
+  .mine-del:hover{ color:#e5484d; border-color:#e5484d; }
+  .mine-origin{
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    padding:2px 6px; border-radius:5px; border:1px solid var(--border); color:var(--muted-2); white-space:nowrap; cursor:help;
+  }
+  .mine-origin.repo{ color:var(--unix); border-color:var(--unix); }
+  .mine-origin.local{ color:var(--amber); border-color:var(--amber); }
+  .mine-origin.dirty{ color:var(--procs); border-color:var(--procs); }
+
+  .fb-wide{ grid-column:1 / -1; }
+  .fb-desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 12px; }
+  .fb-area{ resize:vertical; min-height:70px; line-height:1.45; width:100%; }
+  .fb-check{ display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--muted); cursor:pointer; line-height:1.4; }
+  .fb-check input{ margin-top:2px; accent-color:var(--amber); flex-shrink:0; cursor:pointer; }
+  .fb-check:hover{ color:var(--text); }
+  .fb-pull{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px; }
+  .fb-pull-select{ max-width:260px; padding:5px 8px; font-size:12px; }
+  .fb-pull-hint{ font-size:11.5px; color:var(--muted-2); }
+  .fb-presets{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; padding:10px; border:1px dashed var(--border); border-radius:8px; }
+  .fb-preset-select{ max-width:220px; padding:5px 8px; font-size:12px; }
+  .fb-preset-name{ flex:1; min-width:160px; padding:5px 8px; font-size:12px; }
+  .fb-preset-note{ font-size:11.5px; color:var(--muted-2); flex-basis:100%; }
+  .fb-warn{ font-size:12.5px; color:var(--procs); border:1px solid var(--procs); border-radius:8px; padding:7px 10px; margin-bottom:10px; line-height:1.45; }
+  .fb-file{ margin-bottom:14px; }
+  .fb-file-name{ font-family:'JetBrains Mono', monospace; font-size:12.5px; font-weight:600; color:var(--text); }
+  .fb-pre{
+    margin:0; max-height:420px; overflow:auto;
+    background:var(--example-bg); border:1px solid var(--border-soft); border-radius:6px; padding:10px 12px;
+    font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.5; color:var(--example-text); white-space:pre; tab-size:4;
+  }
+  .fb-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:12px; }
+
+  /* Generator / merge output boxes sit outside .card, so they never got the card's example styling. */
+  .gen-build .example{
+    background:var(--example-bg); border:1px solid var(--border-soft); border-radius:6px;
+    padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--example-text);
+    white-space:pre-wrap; word-break:break-word; line-height:1.5;
+  }

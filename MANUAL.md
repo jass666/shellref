@@ -216,3 +216,28 @@ common mistake when hand-editing a big data array).
 | `js/generators.js` | Adding a new Command Generator recipe (a guided, fill-in-the-blanks command builder) — this is a more involved change than adding a reference card; look at an existing entry in the `GENERATORS` array as a template. |
 | `js/app.js` | Changing how cards are rendered, search behavior, the sidebar mechanics, or the theme toggle. Rarely needed for content changes. |
 | `index.html` | Changing the page's static structure (header, hero copy, footer text). Never needed just to add content. |
+
+---
+
+## 3. Saving commands you find on the web (and making them permanent)
+
+1. Sidebar -> **My saved commands** -> **+ Add a command**. Paste the command, optionally add a title, shell, group, source link, notes. Use `<Name>` for blanks you want to fill in later (Browse/Merge show an input for each).
+2. It is stored in your browser immediately and shows up in search, All commands, Browse, and Merge. Any generated command also has **★ save**.
+3. **To make it permanent:** click **Export for repo**, replace `js/my-commands.js` with the downloaded file, run `Push_Launcher.bat`. Cards switch from `browser only` to `in repo`.
+4. **Export backup / Import** move your library as a `.json` file (import merges and skips duplicates; it also accepts a `my-commands.js`).
+
+You can also edit `js/my-commands.js` by hand: each command needs `uid` (unique number, 100000 or higher) and `command`; optional `title`, `desc`, `shell` (`cmd` | `powershell` | `unix`), `group`, `src`.
+
+## 4. Adding a file template to the File builder
+
+**File to edit: `js/filebuilder.js`.** Add one object to `FB_TEMPLATES`:
+
+```js
+{ id:'my-file', cat:'Repo files', label:'My file', desc:'One line.',
+  fields:[ {k:'name', l:'File name', t:'text', d:'x.txt'},        // t: text | select | check | area | chips
+           {k:'on',   l:'Enable it', t:'check', d:true} ],
+  build:v => [{ name: v.name, content: 'hello\n' }],              // return one or more files
+  warn:v => [],  note:v => 'What to do with the file.' }
+```
+
+The list entry, form, preview, copy, download, `.zip`, and presets all work automatically. Use `fbCrlf(lines)` for Windows files and `fbLf(lines)` for Unix files.

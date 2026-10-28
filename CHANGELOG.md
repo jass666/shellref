@@ -2,6 +2,19 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.1 - File builder, saved commands, and a permanent library
+
+* **New "File builder" tab** in the Command generator. Builds whole files: custom `.bat`, `.ps1` (+ double-click `.bat` launcher), `.sh`, a **Git push script** (`Push.ps1` + `Push_Launcher.bat`), `.gitignore` (14 pick-able blocks + custom lines), `.gitattributes`, `.editorconfig`. Live preview, copy, per-file download, and a one-click `.zip` for multi-file results.
+  - Git push with default options reproduces this project's own `Push.ps1` and `Push_Launcher.bat` exactly (checked line-for-line). Extra options: normal push, pull --rebase then push, ask for commit message, deploy stamp on/off, custom branch/remote/names. Warns about placeholder URLs and tokens pasted into the URL.
+  - Script templates offer admin self-elevation, run-from-own-folder, logging (.ps1), UTF-8 console (.bat), strict mode (.sh). `.ps1` gets a UTF-8 BOM automatically when it contains non-English text. `.bat`/`.ps1` are written with CRLF.
+  - Script bodies can be filled from your Merge list or from your saved commands.
+  - **Presets**: save any template's settings under a name (e.g. one per repo) and reload later. Last-used values per template are remembered.
+* **New "My saved commands" section** (sidebar). Save commands you find on the web: command (multi-line OK, `<Token>` blanks supported), title, shell, group, source link, notes. Also `★ save` on every generated command in Quick recipes and Browse. Saved commands appear in search, All commands, Browse, and Merge.
+* **Permanence**: saved items go to browser storage instantly, and **Export for repo** produces `js/my-commands.js` — replace the file, run `Push_Launcher.bat`, and the library ships with the site (every device, survives cleared browser data). Each card shows `in repo` / `browser only` / `edited`. Also: JSON backup export and import (merges, never duplicates).
+* New files: `js/my-commands.js` (your baked library), `js/mine.js` (library store + saved-commands view), `js/filebuilder.js` (templates). Script load order in `index.html` updated.
+* Fix: Quick recipes / Merge output boxes had lost their box styling in the v7.0 split; restored.
+* Verified with a headless-browser run (44 checks: saving, editing, deleting, token fill-in, merge, presets, reload persistence, import/export, repo-file loading, escaping of hostile input) plus `node --check` on every file.
+
 ## v7.0 - Split the single-file build into a modular structure (data/sections/generator/app/css)
 
 * **The project is no longer one 2,390-line `index.html`.** Everything has been split into purpose-built files with a single source of truth for each concern, so adding a command or a category no longer means finding the right spot inside one giant file:

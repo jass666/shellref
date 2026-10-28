@@ -18,6 +18,9 @@ The Cloudflare project is configured in `wrangler.jsonc` with the project name `
 | `css/styles.css` | All styling, including the dark/light theme color variables. |
 | `js/data.js` | **The command data.** `DATA` (all command cards) and `FAQ_DATA` (the FAQ tab). This is the file you touch to add, edit, or remove a command — see the comment at the top of the file for the exact shape of an entry. |
 | `js/sections.js` | **The category registry.** `SECTION_META` (label/color/description per category) and `buildNavConfig()`, which generates the sidebar's button order automatically. This is the file you touch to add a new category. |
+| `js/my-commands.js` | **Your permanent library** — saved commands and File-builder presets, baked in via "Export for repo". |
+| `js/mine.js` | Library store (browser + repo file), export/import, and the "My saved commands" view. |
+| `js/filebuilder.js` | The File builder tab: template registry (.bat/.ps1/.sh/git push/.gitignore/…), presets, .zip writer. |
 | `js/generators.js` | The Command Generator tab: the interactive recipe builder, the "browse & fill in the blanks" mode, the multi-command combine list, and the FAQ tab renderer. |
 | `js/app.js` | Core app: search/filter, card rendering, the sidebar (built from `sections.js`), theme toggle, and the hero terminal typer. |
 | `MANUAL.md` | Step-by-step guide for adding a new command or category, with copy-paste templates. |

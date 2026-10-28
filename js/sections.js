@@ -41,6 +41,7 @@ const SECTION_META = {
   outlook: {label:'Outlook / PST', color:'var(--outlook)', sub:'One place for the recurring "Outlook is acting up" toolbox — finding and sizing PST/OST files, repairing a damaged PST with the built-in Inbox Repair Tool (or falling through to third-party/cross-platform tools when scanpst can\'t open the file at all), and the startup switches that reset a broken profile or view. Back up a PST before repairing it: scanpst.exe can discard unreadable items rather than recovering them.'},
   troubleshoot: {label:'Troubleshooting & Fixes', color:'var(--troubleshoot)', sub:'The "something on this machine is misbehaving" toolbox — separate from Install & setup, which is only about getting tools onto a fresh machine. Covers driver problems (find, update, remove, reinstall), general Windows repair (corrupted files, disk errors, stuck updates, dead network, frozen Explorer), and killing the Sticky Keys/Filter Keys/Toggle Keys popups on shared shop-floor machines. Clearing temp files and caches has its own Disk Cleanup section.'},
   cleanup: {label:'Disk Cleanup', color:'var(--cleanup)', sub:'Search out and clear every cache/temp bucket Windows piles up on C: — the per-user and system-wide temp folders, the Windows Update download cache, the Delivery Optimization peer-to-peer cache, Prefetch, the Explorer thumbnail cache, and the Recycle Bin — one at a time, or all at once with the Full sweep script.'},
+  mine: {label:'My saved commands', color:'var(--mine)', sub:'Commands you picked up from the web (or generated here) and saved yourself. Stored in this browser right away; use "Export for repo" to bake them into js/my-commands.js so they survive cleared browser data and show up on every device after the next push.'},
 };
 
 // Utility-based sections (files, procs, netops, search, dataproc, scripting, useradmin,
@@ -54,7 +55,7 @@ const SHELL_LABELS = { cmd:'CMD', powershell:'PowerShell', unix:'Unix' };
 // reg, outlook, troubleshoot, and cleanup are intentionally left out of the
 // combined view and are only reachable from their own sidebar entry — add a
 // key here if a future category should also show up under "All".)
-const ALL_VIEW_SECTIONS = ['files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','setup','apps'];
+const ALL_VIEW_SECTIONS = ['files','procs','netops','search','dataproc','scripting','useradmin','sysdiag','wsl','setup','apps','mine'];
 
 // Non-category sidebar destinations that aren't backed by DATA items (no
 // per-section count badge, not part of SECTION_META).

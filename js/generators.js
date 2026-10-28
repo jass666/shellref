@@ -321,6 +321,10 @@ let genBrowseQuery = '';
 let genBrowseId = null; // matches a DATA[]._id
 let genBrowseValues = {}; // token -> value, for the currently selected item
 
+// Built-in entries carry their <Token> template in `cmd`; saved commands (section
+// 'mine') keep the full command in `tpl` because their `cmd` is just a title.
+function itemTemplate(item){ return item.tpl || item.cmd; }
+
 function extractTokens(cmdStr){
   const seen = new Set(); const out = [];
   for(const m of cmdStr.matchAll(/<([^<>]+)>/g)){
@@ -336,9 +340,9 @@ function currentBrowseItem(){
 function currentBrowseOutput(){
   const item = currentBrowseItem();
   if(!item) return '';
-  const tokens = extractTokens(item.cmd);
+  const tokens = extractTokens(itemTemplate(item));
   if(!tokens.length) return item.ex || item.cmd;
-  let out = item.cmd;
+  let out = itemTemplate(item);
   tokens.forEach(tok=>{
     const val = (genBrowseValues[tok] || '').trim();
     if(val) out = out.split(`<${tok}>`).join(val);
@@ -588,6 +592,7 @@ function renderGenerator(){
     <button type="button" class="gen-mode-btn${genMode==='recipes'?' active':''}" onclick="onGenModeClick('recipes')">Quick recipes</button>
     <button type="button" class="gen-mode-btn${genMode==='browse'?' active':''}" onclick="onGenModeClick('browse')">Browse all commands <span class="gen-mode-count">${DATA.length}</span></button>
     <button type="button" class="gen-mode-btn${genMode==='combine'?' active':''}" onclick="onGenModeClick('combine')">Merge commands${combineOrder.length ? ` <span class="gen-mode-count">${combineOrder.length}</span>` : ''}</button>
+    <button type="button" class="gen-mode-btn${genMode==='files'?' active':''}" onclick="onGenModeClick('files')">File builder</button>
   </div>`;
 
   let layoutHtml;
@@ -653,6 +658,7 @@ function renderGenerator(){
             <span class="gen-output-btns">
               <button type="button" class="copy-btn" onclick="copyGenOutput(this)">copy</button>
               <button type="button" class="copy-btn" onclick="addGenRecipeToMerge(this)" title="Add this command to the Merge commands list">+ merge</button>
+              <button type="button" class="copy-btn" onclick="saveGenToMine(this)" title="Save to My saved commands">★ save</button>
               <button type="button" class="copy-btn" onclick="downloadGenOutput(this)" title="Download as a runnable script">⬇ script</button>
             </span>
           </div>
@@ -680,7 +686,7 @@ function renderGenerator(){
     if(!selectedItem){
       buildHtml = `<div class="gen-browse-placeholder">Pick a command from the list to build it.</div>`;
     } else {
-      const tokens = extractTokens(selectedItem.cmd);
+      const tokens = extractTokens(itemTemplate(selectedItem));
       let tokenFieldsHtml = '';
       tokens.forEach(tok=>{
         const val = genBrowseValues[tok] || '';
@@ -708,6 +714,7 @@ function renderGenerator(){
             <span class="gen-output-btns">
               <button type="button" class="copy-btn" onclick="copyGenBrowseOutput(this)">copy</button>
               <button type="button" class="copy-btn" onclick="addGenBrowseToMerge(this)" title="Add this command to the Merge commands list">+ merge</button>
+              <button type="button" class="copy-btn" onclick="saveGenBrowseToMine(this)" title="Save to My saved commands">★ save</button>
               <button type="button" class="copy-btn" onclick="downloadGenBrowseOutput(this)" title="Download as a runnable script">⬇ script</button>
             </span>
           </div>
@@ -723,17 +730,20 @@ function renderGenerator(){
       </div>
       <div class="gen-build" style="--card-accent:${accent}">${buildHtml}</div>
     </div>`;
-  } else {
+  } else if(genMode === 'combine'){
     layoutHtml = combineLayoutHtml();
+  } else {
+    layoutHtml = fileBuilderHtml();
   }
 
   const subtitles = {
     recipes: "Pick what you're trying to do, choose a shell, fill in the blanks — copy the exact command.",
     browse: "Every command in the reference, in one searchable list. Fill in any blanks and copy.",
     combine: "Hand-pick any commands from the full reference, put them in the order you want them to run, and merge them into one script — or copy them all at once.",
+    files: "Build whole files — .bat, .ps1, .sh, a Git push script like Push.ps1, .gitignore, .gitattributes, .editorconfig — fill in the options, then download or copy. Save your settings as presets.",
   };
 
-  const historyPanelHtml = genMode === 'combine' ? '' : `<div class="gen-history-panel">
+  const historyPanelHtml = (genMode === 'combine' || genMode === 'files') ? '' : `<div class="gen-history-panel">
       <div class="gen-history-header">
         <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>
         <span class="gen-history-combo">
@@ -823,9 +833,9 @@ function matchesCombine(item){
 }
 
 function combineResolvedCommand(item){
-  const tokens = extractTokens(item.cmd);
+  const tokens = extractTokens(itemTemplate(item));
   if(!tokens.length) return item.ex || item.cmd;
-  let out = item.cmd;
+  let out = itemTemplate(item);
   const vals = combineTokenValues[item._id] || {};
   tokens.forEach(tok=>{
     const val = (vals[tok] || '').trim();
@@ -903,7 +913,7 @@ function combineLayoutHtml(){
       const badge = `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[entry.shell] || 'var(--amber)'}">${SHELL_LABELS[entry.shell] || entry.shell}</span>`;
       let tokenRowHtml = '';
       if(entry.type === 'ref'){
-        const tokens = extractTokens(entry.item.cmd);
+        const tokens = extractTokens(itemTemplate(entry.item));
         if(tokens.length){
           const tokenFieldsHtml = tokens.map(tok=>{
             const val = (combineTokenValues[entry.id] && combineTokenValues[entry.id][tok]) || '';

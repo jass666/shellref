@@ -51,6 +51,11 @@ function render(){
     return;
   }
 
+  if(activeSection === 'mine'){
+    renderMine();
+    return;
+  }
+
   const filtered = DATA.filter(matches);
   document.getElementById('resultCount').textContent = query ? `${filtered.length} match${filtered.length!==1?'es':''}` : '';
 
