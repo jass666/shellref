@@ -316,7 +316,7 @@ const GEN_SHELL_COLORS = { cmd:'var(--cmd)', powershell:'var(--ps)', unix:'var(-
 // placeholders in their `cmd` field (e.g. `wsl --install -d <Distro>`) — for
 // those, this mode renders one text input per unique token and substitutes it
 // live into the output, the same way the curated recipes do.
-let genMode = 'recipes'; // 'recipes' | 'browse' | 'combine'
+let genMode = 'recipes'; // 'recipes' | 'browse' | 'combine' | 'files' | 'analyze'
 let genBrowseQuery = '';
 let genBrowseId = null; // matches a DATA[]._id
 let genBrowseValues = {}; // token -> value, for the currently selected item
@@ -593,6 +593,7 @@ function renderGenerator(){
     <button type="button" class="gen-mode-btn${genMode==='browse'?' active':''}" onclick="onGenModeClick('browse')">Browse all commands <span class="gen-mode-count">${DATA.length}</span></button>
     <button type="button" class="gen-mode-btn${genMode==='combine'?' active':''}" onclick="onGenModeClick('combine')">Merge commands${combineOrder.length ? ` <span class="gen-mode-count">${combineOrder.length}</span>` : ''}</button>
     <button type="button" class="gen-mode-btn${genMode==='files'?' active':''}" onclick="onGenModeClick('files')">File builder</button>
+    <button type="button" class="gen-mode-btn${genMode==='analyze'?' active':''}" onclick="onGenModeClick('analyze')">Analyze file</button>
   </div>`;
 
   let layoutHtml;
@@ -732,6 +733,8 @@ function renderGenerator(){
     </div>`;
   } else if(genMode === 'combine'){
     layoutHtml = combineLayoutHtml();
+  } else if(genMode === 'analyze'){
+    layoutHtml = analyzerHtml();
   } else {
     layoutHtml = fileBuilderHtml();
   }
@@ -741,9 +744,10 @@ function renderGenerator(){
     browse: "Every command in the reference, in one searchable list. Fill in any blanks and copy.",
     combine: "Hand-pick any commands from the full reference, put them in the order you want them to run, and merge them into one script — or copy them all at once.",
     files: "Build whole files — .bat, .ps1, .sh, a Git push script like Push.ps1, .gitignore, .gitattributes, .editorconfig — fill in the options, then download or copy. Save your settings as presets.",
+    analyze: "Upload a .bat / .ps1 / .sh: it's dissected step by step against this library, you can remove or add commands and repackage it, and anything the library is missing becomes a ready-to-paste LLM prompt.",
   };
 
-  const historyPanelHtml = (genMode === 'combine' || genMode === 'files') ? '' : `<div class="gen-history-panel">
+  const historyPanelHtml = (genMode === 'combine' || genMode === 'files' || genMode === 'analyze') ? '' : `<div class="gen-history-panel">
       <div class="gen-history-header">
         <span class="gen-history-title">Recent commands<span class="gen-history-count" id="genHistoryCount">${genHistory.length ? genHistory.length+' saved' : ''}</span></span>
         <span class="gen-history-combo">

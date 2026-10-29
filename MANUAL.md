@@ -241,3 +241,18 @@ You can also edit `js/my-commands.js` by hand: each command needs `uid` (unique 
 ```
 
 The list entry, form, preview, copy, download, `.zip`, and presets all work automatically. Use `fbCrlf(lines)` for Windows files and `fbLf(lines)` for Unix files.
+
+## 5. Analyze a file and grow the library from the gaps
+
+**Tab: Command generator -> Analyze file. Code: `js/analyzer.js`.** Nothing is uploaded anywhere; the file is read in your browser.
+
+**Cycle**
+1. Upload (or paste) a real script you use. Read the headline, the risks, and each step's status: *known*, *partial* (tool known, flag/subcommand undocumented), *not in library*, *only in other examples*, *script-defined/external*. The (i) button shows the matched card's description.
+2. Edit if you want: remove / restore steps, move them, insert a library command or your own line (the + button picks the position). Download the edited file, or the zip (edited + original + `ANALYSIS.md`). Read the yellow warnings first: they catch orphaned `goto` labels, unbalanced blocks, and `<blanks>` you forgot to fill.
+3. **Grow the library**: *copy LLM prompt for these gaps*, give it to an LLM that can browse, and paste its JSON reply into the box. *Validate & preview* shows each entry as new / duplicate / invalid with its confidence and source. Spot-check low/medium confidence entries against the cited doc.
+4. **Save** puts the selected entries in My saved commands (instant; the file is re-analyzed so the gap closes). Then use Export for repo + push. For proper categories, use *copy as js/data.js lines* and paste them before the closing `];` of `DATA`.
+5. The **backlog** remembers missing commands across every file you analyze, most-needed first. *copy prompt for top backlog items* works through it; *what's missing here?* asks the LLM to propose absent commands for one section (no upload needed).
+
+**Reply shape the LLM must return** (the prompt already contains this): a JSON array of `{s, t, sh?, cmd, desc, use, ex, kw, confidence, source}`. `s` must be a key from `SECTION_META`; entries with an unknown section can only be saved to My saved commands.
+
+**Tuning** (all in `js/analyzer.js`): `AZ_DANGER` (risky-step patterns), `AZ_ADMIN`, `AZ_MW` (tools whose first argument is a subcommand: git, docker, net, ...), `AZ_SYNTAX` (control-flow words that are never gaps), `AZ_ALIAS` (PowerShell aliases).

@@ -2,6 +2,18 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.2 - Analyze file: upload a script, cross-check it against the library, edit, repackage, and grow the library from the gaps
+
+* **New "Analyze file" tab** in the Command generator (`js/analyzer.js`). Drop or paste a `.bat` / `.cmd` / `.ps1` / `.sh` / `.txt`; it is read in the browser only.
+  - **Dissect**: the file is split into steps (continuation lines kept together) and each command is matched against `DATA` (built-in cards + My saved commands). Status per step: **known**, **partial** (tool known but this flag/subcommand isn't documented), **not in library**, **only in other examples** (appears inside another card's recipe but has no card of its own), or **script-defined / external**. Matching prefers a card whose *own* command is that tool, then flag overlap, then shell.
+  - A plain-English headline (kind, step count, dominant categories), the file's own first comment as its stated purpose, and traits: needs admin, uses network/installs, touches the registry, logs, has error handling. Destructive steps (recursive delete, rm -rf, vssadmin delete, reg delete, force-push, curl|bash, ...) are flagged.
+  - **Edit**: remove / restore any step, move up/down, insert a library command (or any pasted line) below a chosen step, one-click remove risky steps or comments. Line endings (CRLF/LF) and BOM are preserved; a sanity check warns about orphaned `goto` labels, unbalanced `( )` / `{ }`, mismatched `if/fi`, `for/done`, `case/esac`, and un-filled `<blanks>`.
+  - **Repackage**: download the edited file, or a `.zip` with the edited file, the untouched original, and `ANALYSIS.md` (step table, risks, what was removed/added, gaps).
+  - **Grow the library**: gaps become a ready-to-paste LLM prompt that carries the exact entry shape, valid section keys, existing tier names, and related cards already covered. Paste the model's JSON reply back: it is parsed (fences/prose tolerated), schema-checked, de-duplicated, previewed with confidence/source, then saved to My saved commands (and the file is re-analyzed so the gap closes) or copied as ready-made `js/data.js` lines.
+  - **Backlog**: missing commands accumulate across every file you analyze (browser storage), most-needed first, with a one-click prompt for the top 12. A per-section "what's missing here?" prompt covers breadth without uploading anything.
+* Changed files: `js/generators.js` (new tab wiring), `index.html` (script tag), `css/styles.css` (`.az-*` styles). No build step added.
+* Verified in a headless jsdom run: clean `.bat`, `.sh`, the project's own `Push.ps1` and `Push_Launcher.bat`; remove/insert/move; byte-exact CRLF+BOM round trip; zip integrity; reply parsing (fenced, truncated, garbage, duplicate, invalid-section); save closes the gap; `node --check` on every file.
+
 ## v7.1 - File builder, saved commands, and a permanent library
 
 * **New "File builder" tab** in the Command generator. Builds whole files: custom `.bat`, `.ps1` (+ double-click `.bat` launcher), `.sh`, a **Git push script** (`Push.ps1` + `Push_Launcher.bat`), `.gitignore` (14 pick-able blocks + custom lines), `.gitattributes`, `.editorconfig`. Live preview, copy, per-file download, and a one-click `.zip` for multi-file results.

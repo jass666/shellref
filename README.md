@@ -21,6 +21,7 @@ The Cloudflare project is configured in `wrangler.jsonc` with the project name `
 | `js/my-commands.js` | **Your permanent library** — saved commands and File-builder presets, baked in via "Export for repo". |
 | `js/mine.js` | Library store (browser + repo file), export/import, and the "My saved commands" view. |
 | `js/filebuilder.js` | The File builder tab: template registry (.bat/.ps1/.sh/git push/.gitignore/…), presets, .zip writer. |
+| `js/analyzer.js` | The **Analyze file** tab: parses an uploaded script, cross-checks it against `DATA`, lets you remove/add steps and repackage it, and turns library gaps into LLM prompts + a backlog. |
 | `js/generators.js` | The Command Generator tab: the interactive recipe builder, the "browse & fill in the blanks" mode, the multi-command combine list, and the FAQ tab renderer. |
 | `js/app.js` | Core app: search/filter, card rendering, the sidebar (built from `sections.js`), theme toggle, and the hero terminal typer. |
 | `MANUAL.md` | Step-by-step guide for adding a new command or category, with copy-paste templates. |
@@ -28,6 +29,10 @@ The Cloudflare project is configured in `wrangler.jsonc` with the project name `
 | `.gitignore` | Ignore rules |
 | `Push.ps1` | Force-push helper |
 | `Push_Launcher.bat` | One-click launcher for `Push.ps1` |
+
+## Analyze a file (and grow the library from it)
+
+Command generator -> **Analyze file**. Upload or paste a script; each step is checked against the library, risky steps are flagged, and you can remove/add/reorder steps and download the edited file (or a zip with the original and an `ANALYSIS.md`). Missing commands become an LLM prompt; paste the JSON reply back to validate, de-duplicate, and save. Details in `MANUAL.md` section 5.
 
 ## Adding content
 
