@@ -256,3 +256,6 @@ The list entry, form, preview, copy, download, `.zip`, and presets all work auto
 **Reply shape the LLM must return** (the prompt already contains this): a JSON array of `{s, t, sh?, cmd, desc, use, ex, kw, confidence, source}`. `s` must be a key from `SECTION_META`; entries with an unknown section can only be saved to My saved commands.
 
 **Tuning** (all in `js/analyzer.js`): `AZ_DANGER` (risky-step patterns), `AZ_ADMIN`, `AZ_MW` (tools whose first argument is a subcommand: git, docker, net, ...), `AZ_SYNTAX` (control-flow words that are never gaps), `AZ_ALIAS` (PowerShell aliases).
+
+
+**Ready-made templates:** File builder -> Scripts -> *Cache cleaner (Clean-Caches)* builds `Clean-Caches.ps1` + `Clean-Caches.bat` (detect, dry run, delete, weekly SYSTEM schedule). The matching how-to cards are in Disk Cleanup under "Find what is eating space", "Per-app caches" and "Scheduled auto-clean".

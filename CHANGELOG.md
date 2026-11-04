@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.3 - Cache cleaner integrated: File builder template + 8 Disk Cleanup cards
+
+* **New File builder template "Cache cleaner (Clean-Caches)"** (Scripts). Builds `Clean-Caches.ps1` + the `Clean-Caches.bat` menu launcher (detect / dry run / delete / delete + dev caches / weekly SYSTEM schedule / remove schedule). Defaults reproduce the two source files line-for-line; fields rename the script, launcher and scheduled task and set the Detect-mode minimum size. The launcher is written with CRLF (the uploaded `.bat` had LF-only line endings, which can break `goto`/label handling in cmd).
+* **8 new Disk Cleanup cards** for what the script cleans that the library did not cover: detect big cache-like folders under AppData, browser caches (Chrome/Edge/Brave/Firefox), Electron app caches (VS Code/Discord/Slack/Teams), GPU shader caches, crash dumps + WER queues, dev caches (npm/pip/NuGet), schedule a weekly auto-clean (schtasks, SYSTEM), remove the weekly task. Library total: 344 -> 352; Disk Cleanup 20 -> 28. Hero count updated.
+* Changed files: `js/filebuilder.js`, `js/data.js`, `index.html`, `README.md`, `MANUAL.md`. No build step added.
+* Verified headlessly: template output equals both source files (ps1/bat) with default fields and with renamed fields; `node --check` on every JS file; DATA re-parses (352 entries, all have section/cmd/desc).
+* Known limit found while testing: the Analyze tab treats lines inside PowerShell hashtables/arrays and `<# #>` comment blocks as commands, so a large `.ps1` like this one reports many false "not in library" items. Not changed in this pass.
+
 ## v7.2 - Analyze file: upload a script, cross-check it against the library, edit, repackage, and grow the library from the gaps
 
 * **New "Analyze file" tab** in the Command generator (`js/analyzer.js`). Drop or paste a `.bat` / `.cmd` / `.ps1` / `.sh` / `.txt`; it is read in the browser only.
