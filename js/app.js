@@ -24,36 +24,38 @@ function jsAttr(s){
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
 
+// A typed query searches EVERY category (including git, docker, reg, outlook,
+// troubleshoot, cleanup, which the 'All commands' view leaves out). Scoping by
+// the active section only applies when the search box is empty.
 function matches(item){
-  if(activeSection !== 'all' && item.s !== activeSection) return false;
-  if(!query) return true;
+  if(!query){
+    return activeSection === 'all' ? true : item.s === activeSection;
+  }
   const q = query.toLowerCase();
-  return item.cmd.toLowerCase().includes(q)
-    || item.desc.toLowerCase().includes(q)
-    || item.ex.toLowerCase().includes(q)
-    || item.t.toLowerCase().includes(q)
-    || (item.use && item.use.toLowerCase().includes(q))
-    || (item.kw && item.kw.toLowerCase().includes(q));
+  const has = v => typeof v === 'string' && v.toLowerCase().includes(q);
+  return has(item.cmd) || has(item.desc) || has(item.ex) || has(item.t) || has(item.use) || has(item.kw);
 }
 
 function render(){
   const main = document.getElementById('main');
 
-  if(activeSection === 'generator'){
-    document.getElementById('resultCount').textContent = '';
-    renderGenerator();
-    return;
-  }
+  if(!query){
+    if(activeSection === 'generator'){
+      document.getElementById('resultCount').textContent = '';
+      renderGenerator();
+      return;
+    }
 
-  if(activeSection === 'faq'){
-    document.getElementById('resultCount').textContent = '';
-    renderFaq();
-    return;
-  }
+    if(activeSection === 'faq'){
+      document.getElementById('resultCount').textContent = '';
+      renderFaq();
+      return;
+    }
 
-  if(activeSection === 'mine'){
-    renderMine();
-    return;
+    if(activeSection === 'mine'){
+      renderMine();
+      return;
+    }
   }
 
   const filtered = DATA.filter(matches);
@@ -64,7 +66,9 @@ function render(){
     return;
   }
 
-  const sectionsToShow = activeSection === 'all' ? ALL_VIEW_SECTIONS : [activeSection];
+  const sectionsToShow = query
+    ? [...new Set([...ALL_VIEW_SECTIONS, ...Object.keys(SECTION_META)])]
+    : (activeSection === 'all' ? ALL_VIEW_SECTIONS : [activeSection]);
   let html = '';
 
   sectionsToShow.forEach(secKey=>{

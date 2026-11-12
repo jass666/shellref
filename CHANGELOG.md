@@ -2,6 +2,13 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.4 - Fix: search now covers every category instead of only the open section
+
+* **Bug:** typing in the search box only filtered the section currently open in the sidebar (the page opens on Install & setup, or whichever section was last visited), so e.g. `grep` or `taskkill` showed "No matches" unless you were on the right section first. The "All commands" view also leaves out git, docker, reg, outlook, troubleshoot and cleanup, so searching there missed those too. In Command generator / FAQ the box did nothing.
+* **Fix (`js/app.js`):** a non-empty query now searches all of `DATA` (every category, including the ones left out of All commands and My saved commands), grouped by section. Clearing the box returns to the section/view you were on, including Command generator, FAQ and My saved commands. Empty-box behavior is unchanged. `matches()` also tolerates entries with a missing field instead of throwing.
+* Changed files: `js/app.js`. No build step added.
+* Verified headlessly (Playwright): `grep` 31, `docker` 25, `taskkill` 5, `wsl --export` 1 and a nonsense query 0 results from the default section; searching from Command generator and from a different section works; clearing restores the generator; no page errors; `node --check` on every JS file.
+
 ## v7.3 - Cache cleaner integrated: File builder template + 8 Disk Cleanup cards
 
 * **New File builder template "Cache cleaner (Clean-Caches)"** (Scripts). Builds `Clean-Caches.ps1` + the `Clean-Caches.bat` menu launcher (detect / dry run / delete / delete + dev caches / weekly SYSTEM schedule / remove schedule). Defaults reproduce the two source files line-for-line; fields rename the script, launcher and scheduled task and set the Detect-mode minimum size. The launcher is written with CRLF (the uploaded `.bat` had LF-only line endings, which can break `goto`/label handling in cmd).
