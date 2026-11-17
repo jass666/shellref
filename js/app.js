@@ -372,6 +372,8 @@ document.getElementById('search').addEventListener('input', (e)=>{
   render();
 });
 
+document.getElementById('headerAddCommand').addEventListener('click', openMineEditor);
+
 // ---------- stats ----------
 // Counts are matched up by data-count-for="<section key>", which renderNav()
 // stamped onto each nav button's count span — no per-category id needed.

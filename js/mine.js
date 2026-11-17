@@ -440,6 +440,18 @@ function mineToggleForm(){
   if(mineFormOpen){ const t = document.querySelector('#mineForm textarea'); if(t) t.focus(); }
 }
 
+function openMineEditor(){
+  if(typeof query !== 'undefined') query = '';
+  const searchEl = document.getElementById('search');
+  if(searchEl) searchEl.value = '';
+  if(typeof goToSection === 'function') goToSection('mine');
+  if(!mineFormOpen){ mineFormOpen = true; mineMsg = null; mineResetDraft(); renderMine(); }
+  const form = document.getElementById('mineForm');
+  if(form) form.scrollIntoView({behavior:'smooth', block:'center'});
+  const textarea = document.querySelector('#mineForm textarea');
+  if(textarea) textarea.focus();
+}
+
 function mineCancel(){ mineFormOpen = false; mineResetDraft(); renderMine(); }
 
 function mineSubmit(){
