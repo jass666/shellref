@@ -139,6 +139,7 @@ function mineAddEntry(raw){
   e.ts = Date.now();
   mineLocal.push(e);
   libSaveAll();
+  if(typeof shellrefBackend !== 'undefined') shellrefBackend.save(e);
   return 'ok';
 }
 
@@ -150,6 +151,7 @@ function mineUpdateEntry(uid, raw){
   const i = mineLocal.findIndex(x=>Number(x.uid) === uid);
   if(i === -1) mineLocal.push(e); else mineLocal[i] = e;
   libSaveAll();
+  if(typeof shellrefBackend !== 'undefined') shellrefBackend.save(e);
   return true;
 }
 
@@ -163,6 +165,7 @@ function mineRemoveEntry(uid){
     if(typeof combineTokenValues !== 'undefined') delete combineTokenValues[uid];
   }
   libSaveAll();
+  if(typeof shellrefBackend !== 'undefined') shellrefBackend.remove(uid);
 }
 
 // ---------- presets (File builder) ----------
@@ -400,13 +403,13 @@ function renderMine(){
   const storageWarn = libStorageOk ? '' : `<div class="mine-msg err">This browser blocked saving (private window or storage full). Use "Export backup" so nothing is lost.</div>`;
 
   const toolbar = `<div class="mine-toolbar">
-    <button type="button" class="mine-btn primary" onclick="mineToggleForm()">${mineFormOpen ? 'Close form' : '+ Add a command'}</button>
+    <button type="button" class="mine-btn primary" onclick="mineToggleForm()">${mineFormOpen ? 'Close editor' : '+ Add a command'}</button>
     <button type="button" class="mine-btn" onclick="exportLibraryForRepo()" title="Makes js/my-commands.js — replace the file in your project and push">⬇ Export for repo</button>
     <button type="button" class="mine-btn" onclick="exportLibraryJson()" title="A plain .json backup you can re-import">⬇ Export backup</button>
     <label class="mine-btn" title="Merge a backup .json (or a my-commands.js) into this browser">⬆ Import<input type="file" accept=".json,.js,application/json" onchange="mineImportFile(this)" hidden></label>
   </div>`;
 
-  const stats = `<p class="mine-stats">${all.length} saved · ${nRepo} in repo · ${all.length - nRepo} browser only${nPresets ? ` · ${nPresets} script preset${nPresets !== 1 ? 's' : ''}` : ''}. Browser-only items live in this browser's storage; export for repo to keep them for good.</p>`;
+  const stats = `<p class="mine-stats">${all.length} command${all.length !== 1 ? 's' : ''} · ${nRepo} in the base library · ${all.length - nRepo} local draft${all.length - nRepo !== 1 ? 's' : ''}${nPresets ? ` · ${nPresets} script preset${nPresets !== 1 ? 's' : ''}` : ''}. Add or edit here, then use <b>Export for repo</b> to publish a permanent library without editing JavaScript.</p>`;
 
   const groups = [...new Set(items.map(i=>i.t))].sort((a, b)=>a.localeCompare(b));
   let cardsHtml = '';
@@ -420,6 +423,7 @@ function renderMine(){
   main.innerHTML = `<div class="section" id="sec-mine">
     <div class="section-head"><h2>${meta.label}</h2><span class="tag" style="color:${meta.color}">${all.length}</span></div>
     <p class="section-sub">${meta.sub}</p>
+    <div class="mine-admin-intro"><strong>Command library admin</strong><span>Manage the reference from this screen. Every field is searchable, and multi-line scripts are supported.</span></div>
     ${toolbar}${msgHtml}${storageWarn}
     ${mineFormOpen ? mineFormHtml() : ''}
     ${stats}
@@ -485,3 +489,4 @@ function mineAddToMerge(uid, btn){
 }
 
 mineSync();
+if(typeof shellrefBackend !== 'undefined') shellrefBackend.hydrate();

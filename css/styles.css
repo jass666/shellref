@@ -485,6 +485,9 @@
 
   /* ===== My saved commands + File builder (v7.1) ===== */
   .mine-toolbar{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 10px; }
+  .mine-admin-intro{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:14px 0 10px; padding:12px 14px; border:1px solid color-mix(in srgb, var(--mine) 45%, var(--border)); border-left:3px solid var(--mine); border-radius:9px; background:color-mix(in srgb, var(--mine) 8%, var(--panel)); }
+  .mine-admin-intro strong{ font-family:'Space Grotesk', sans-serif; font-size:14px; color:var(--mine); }
+  .mine-admin-intro span{ color:var(--muted-2); font-size:12px; }
   .mine-btn{
     background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px;
     padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; transition:all .12s;

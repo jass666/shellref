@@ -2,6 +2,15 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.5 - Command library admin and optional shared backend
+
+* **New Command library admin screen:** the former My saved commands view is now an editor workspace for adding, editing, deleting, grouping, and searching commands without opening the source files. Multi-line scripts, shell labels, notes, source links, JSON backups, imports, and repo exports remain supported.
+* **New optional backend bridge (`js/backend.js`):** when `/api/commands` exists, the library hydrates from the shared API and mirrors create, update, and delete actions. If the endpoint is unavailable, the site continues using browser storage and the existing export/import workflow.
+* **New Cloudflare D1 backend starter:** `backend/worker.js` provides public reads and admin-only create/update/delete endpoints; `backend/schema.sql` defines the command table and indexes; `backend/README.md` documents deployment and the `ADMIN_EMAIL` setting.
+* Updated `README.md` and footer copy to document the no-source-edit workflow and the optional shared backend.
+* Changed files: `index.html`, `css/styles.css`, `js/sections.js`, `js/mine.js`, `js/backend.js`, `backend/worker.js`, `backend/schema.sql`, `backend/README.md`, `README.md`.
+* Verified with `node --check` on the changed JavaScript files, `git diff --check`, and a local HTTP response check (`200 OK`).
+
 ## v7.4 - Fix: search now covers every category instead of only the open section
 
 * **Bug:** typing in the search box only filtered the section currently open in the sidebar (the page opens on Install & setup, or whichever section was last visited), so e.g. `grep` or `taskkill` showed "No matches" unless you were on the right section first. The "All commands" view also leaves out git, docker, reg, outlook, troubleshoot and cleanup, so searching there missed those too. In Command generator / FAQ the box did nothing.
