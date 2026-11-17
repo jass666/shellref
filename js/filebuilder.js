@@ -3,7 +3,8 @@
    ==========================================================================
    Builds whole files instead of single commands: custom .bat / .ps1 / .sh
    scripts, a Git push script pair like this project's own Push.ps1 +
-   Push_Launcher.bat, .gitignore, .gitattributes, .editorconfig.
+   Push_Launcher.bat, PowerShell menu launchers, .gitignore, .gitattributes,
+   .editorconfig.
 
    Every template is one object in FB_TEMPLATES below:
      id, cat, label, desc         — list entry + one-line explainer
@@ -27,6 +28,7 @@ if(!fbAll || typeof fbAll !== 'object' || Array.isArray(fbAll)) fbAll = {};
 let fbPresetName = '';
 let fbLoadedPresetId = '';
 let fbNote = '';
+let fbUploadedPs1 = null;
 
 // ---------- small helpers ----------
 function fbCrlf(lines){ return lines.join('\r\n') + '\r\n'; }
@@ -198,6 +200,64 @@ function fbBuildPs1(v){
     if(!v.pause) bat.push('pause');
     files.push({ name: fbBase(name) + '-run.bat', content: fbCrlf(bat) });
   }
+  return files;
+}
+
+// ---------- PowerShell menu launcher (a friendly .bat for double-click users) ----------
+// Each non-empty line is: Menu label | arguments passed to the .ps1
+// The special argument EXIT makes that row close the launcher.
+function fbMenuRows(v){
+  return fbBody(v.options || '').map(line=>{
+    const parts = line.split('|');
+    return { label: fbOneLine(parts[0]) || 'Run PowerShell script', args: fbOneLine(parts.slice(1).join('|')) };
+  }).filter(row=>row.label);
+}
+
+function fbBuildPs1Menu(v){
+  const ps1Name = fbSafeName(v.ps1Name, '.ps1', 'script.ps1');
+  const batName = fbSafeName(v.batName, '.bat', fbBase(ps1Name) + '.bat');
+  const title = fbOneLine(v.title).replace(/[&|<>^%"]+/g, '') || 'PowerShell launcher';
+  const heading = fbOneLine(v.heading).replace(/[&|<>^%"]+/g, '') || title;
+  let rows = fbMenuRows(v);
+  if(!rows.length) rows = [{label:'Run script', args:''}, {label:'Exit', args:'EXIT'}];
+  if(!rows.some(row=>row.args.toUpperCase() === 'EXIT')) rows.push({label:'Exit', args:'EXIT'});
+  const choiceChars = rows.map((_, i)=>String(i + 1)).join('');
+  const L = ['@echo off', 'setlocal', 'title ' + title, 'set "PS1=%~dp0' + ps1Name + '"', '',
+    'if not exist "%PS1%" (', '    echo ' + ps1Name + ' not found next to this .bat file.', '    echo Expected: %PS1%', '    pause', '    exit /b 1', ')', '',
+    ':menu', 'cls', 'echo ==============================', 'echo        ' + heading, 'echo =============================='];
+  rows.forEach((row, i)=>L.push('echo  ' + (i + 1) + '. ' + row.label));
+  L.push('echo.', 'choice /c ' + choiceChars + ' /n /m "Choose [1-' + rows.length + ']: "', '');
+  // choice sets ERRORLEVEL to the selected 1-based index. Test backwards so
+  // each option maps cleanly even when the menu is edited later.
+  for(let i = rows.length; i >= 1; i--){
+    const row = rows[i - 1];
+    if(row.args.toUpperCase() === 'EXIT') L.push('if errorlevel ' + i + ' exit /b 0');
+    else L.push('if errorlevel ' + i + ' set "ARGS=' + row.args.replace(/[&|<>^%"]+/g, '') + '" & goto run');
+  }
+  L.push('', ':run', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS1%" %ARGS%', 'set "ARGS="', 'pause', 'goto menu');
+  return [{name:batName, content:fbCrlf(L)}];
+}
+
+// ---------- simple PS1 -> BAT launcher ----------
+function fbBuildPs1Launcher(v){
+  const ps1Name = fbUploadedPs1 && fbUploadedPs1.name
+    ? fbSafeName(fbUploadedPs1.name, '.ps1', 'script.ps1')
+    : fbSafeName(v.ps1Name, '.ps1', 'script.ps1');
+  const batName = fbSafeName(v.batName, '.bat', fbBase(ps1Name) + '-run.bat');
+  const title = fbOneLine(v.title).replace(/[&|<>^%"]+/g, '') || 'PowerShell script';
+  const args = fbOneLine(v.args).replace(/[&|<>^%"]+/g, '');
+  const bat = ['@echo off', 'setlocal', 'title ' + title, 'set "PS1=%~dp0' + ps1Name + '"', '',
+    'if not exist "%PS1%" (', '    echo ' + ps1Name + ' not found next to this .bat file.', '    echo Expected: %PS1%', '    pause', '    exit /b 1', ')', '',
+    'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS1%"' + (args ? ' ' + args : ''),
+    'if errorlevel 1 (', '    echo.', '    echo PowerShell reported an error. See the message above.', '    pause', '    exit /b 1', ')',
+    'echo.', 'echo Done.', 'pause'];
+  const files = [];
+  if(fbUploadedPs1 && fbUploadedPs1.content){
+    files.push({name:ps1Name, content:fbUploadedPs1.content});
+  } else if(String(v.body || '').trim()) {
+    files.push({name:ps1Name, content:fbPs1Text(fbBody(v.body))});
+  }
+  files.push({name:batName, content:fbCrlf(bat)});
   return files;
 }
 
@@ -607,6 +667,45 @@ const FB_TEMPLATES = [
     note(){ return 'Double-click the -run.bat launcher; double-clicking a .ps1 directly usually just opens it in an editor.'; },
     zip:'powershell-script' },
 
+  { id:'ps1-menu', cat:'Scripts', label:'PowerShell menu launcher (.bat)', shell:'powershell',
+    desc:'Build a friendly numbered .bat menu that runs a neighboring .ps1 with arguments, like startup-manager.bat.',
+    fields:[
+      {k:'ps1Name', l:'PowerShell file to run', t:'text', d:'startup-manager.ps1'},
+      {k:'batName', l:'Launcher file name', t:'text', d:'startup-manager.bat'},
+      {k:'title', l:'Console window title', t:'text', d:'Startup Manager'},
+      {k:'heading', l:'Menu heading', t:'text', d:'STARTUP MANAGER'},
+      {k:'options', l:'Menu options (one per line: label | PowerShell arguments; use EXIT for the exit row)', t:'area', d:'Disable startup apps |\nRe-enable startup apps |-Enable\nDisable (include Microsoft scheduled tasks) |-IncludeMicrosoftTasks\nExit | EXIT'},
+    ],
+    build:fbBuildPs1Menu,
+    warn(v){
+      const rows = fbMenuRows(v);
+      const w = [];
+      if(!String(v.ps1Name || '').trim()) w.push('Set the name of the .ps1 file that will sit next to this launcher.');
+      if(!rows.some(row=>row.args.toUpperCase() === 'EXIT')) w.push('An Exit row will be added automatically because every menu needs a way to close.');
+      if(rows.length > 9) w.push('CHOICE supports only single-digit menu numbers in this generator; keep the menu to 9 rows or fewer.');
+      return w;
+    },
+    note(v){ return 'Put this .bat next to ' + fbSafeName(v.ps1Name, '.ps1', 'script.ps1') + ', then double-click the launcher. It uses PowerShell -ExecutionPolicy Bypass only for this run.'; },
+    zip:'powershell-menu-launcher' },
+
+  { id:'ps1-launcher', cat:'Scripts', label:'PS1 → BAT launcher', shell:'powershell',
+    desc:'Upload a .ps1 or paste PowerShell commands, then get a double-click .bat launcher that runs it for less technical users.',
+    fields:[
+      {k:'upload', l:'Upload an existing PowerShell file (optional)', t:'file', accept:'.ps1,text/plain'},
+      {k:'ps1Name', l:'PowerShell file name (used when pasting commands)', t:'text', d:'my-script.ps1'},
+      {k:'batName', l:'BAT launcher file name', t:'text', d:'my-script-run.bat'},
+      {k:'title', l:'Console window title', t:'text', d:'PowerShell script'},
+      {k:'args', l:'Arguments to pass to the .ps1 (optional)', t:'text', d:''},
+      {k:'body', l:'Or paste PowerShell commands here (one per line)', t:'area', d:''},
+    ],
+    build:fbBuildPs1Launcher,
+    warn(v){
+      if(fbUploadedPs1 || String(v.body || '').trim()) return [];
+      return ['Upload a .ps1 file or paste at least one PowerShell command.'];
+    },
+    note(v){ return 'Keep the generated .bat beside the .ps1, then double-click the .bat. It uses PowerShell -ExecutionPolicy Bypass only for this run.'; },
+    zip:'ps1-launcher' },
+
   { id:'bat', cat:'Scripts', label:'Batch file (.bat)', shell:'cmd', comment:'REM ',
     desc:'A .bat from your own commands, with optional admin prompt, UTF-8 console, and a pause at the end.',
     fields:[
@@ -728,6 +827,10 @@ function fbFieldHtml(tpl, f, v){
   if(f.t === 'check'){
     return `<label class="fb-check fb-wide"><input type="checkbox" data-fb="${f.k}" onchange="onFbInput(this)"${val ? ' checked' : ''}><span>${escapeHtml(f.l)}</span></label>`;
   }
+  if(f.t === 'file'){
+    const chosen = fbUploadedPs1 ? ` — selected: ${escapeHtml(fbUploadedPs1.name)}` : '';
+    return `<label class="gen-field fb-wide"><span class="gen-field-label">${escapeHtml(f.l)}${chosen}</span><input type="file" class="gen-field-input" data-fb="${f.k}" accept="${escapeAttr(f.accept || '')}" onchange="onFbFile(this)"></label>`;
+  }
   if(f.t === 'select'){
     const opts = f.o.map(([ov, ol])=>`<option value="${escapeAttr(ov)}"${String(val) === ov ? ' selected' : ''}>${escapeHtml(ol)}</option>`).join('');
     return `<label class="gen-field"><span class="gen-field-label">${escapeHtml(f.l)}</span><select class="gen-field-input gen-field-select" data-fb="${f.k}" onchange="onFbInput(this)">${opts}</select></label>`;
@@ -820,10 +923,33 @@ function fileBuilderHtml(){
 // ---------- handlers ----------
 function onFbTemplateClick(id){
   fbTplId = id;
+  if(id !== 'ps1-launcher') fbUploadedPs1 = null;
   fbPresetName = '';
   fbLoadedPresetId = '';
   fbNote = '';
   renderGenerator();
+}
+
+function onFbFile(input){
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  if(!/\.ps1$/i.test(file.name)){
+    fbNote = 'Choose a PowerShell .ps1 file.';
+    renderGenerator();
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    fbUploadedPs1 = {name:file.name, content:String(reader.result || '')};
+    const tpl = fbTpl();
+    const v = fbValues(tpl);
+    v.ps1Name = file.name;
+    fbStore(tpl, v);
+    fbNote = 'PowerShell file loaded. Download the BAT launcher below, or download the ZIP to keep both files together.';
+    renderGenerator();
+  };
+  reader.onerror = ()=>{ fbNote = 'Could not read that PowerShell file.'; renderGenerator(); };
+  reader.readAsText(file);
 }
 
 function onFbInput(el){

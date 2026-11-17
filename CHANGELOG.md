@@ -2,6 +2,22 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.7 - Upload a PS1 and generate a double-click BAT launcher
+
+* **New File builder template: “PS1 → BAT launcher”.** Upload an existing `.ps1` or paste PowerShell commands, then download a matching `.bat` launcher designed for double-click use.
+* The launcher checks that the `.ps1` is beside it, passes optional arguments, runs PowerShell with `-NoProfile -ExecutionPolicy Bypass`, reports failures, and pauses so non-CLI users can read the result.
+* When a file is uploaded, the output includes the original `.ps1` and generated `.bat`; when commands are pasted, it creates both files. The existing ZIP button keeps the pair together.
+* Changed files: `js/filebuilder.js`, `README.md`.
+* Verified with `node --check js/filebuilder.js` and `git diff --check`.
+
+## v7.6 - PowerShell menu launcher generator
+
+* **New File builder template: “PowerShell menu launcher (.bat)”** under Scripts. It generates a numbered, double-click-friendly `.bat` launcher for a neighboring `.ps1`, with `CHOICE` menus, per-option PowerShell arguments, missing-file guidance, `pause`, and a safe per-run `-ExecutionPolicy Bypass` invocation.
+* The menu format is simple to edit: one option per line as `Label | arguments`; use `EXIT` for the exit row. The generator adds an Exit row automatically when needed.
+* Added a startup-manager-style default menu and ZIP/download support through the existing File builder flow.
+* Changed files: `js/filebuilder.js`, `README.md`.
+* Verified with `node --check js/filebuilder.js` and `git diff --check`.
+
 ## v7.5 - Command library admin and optional shared backend
 
 * **New Command library admin screen:** the former My saved commands view is now an editor workspace for adding, editing, deleting, grouping, and searching commands without opening the source files. Multi-line scripts, shell labels, notes, source links, JSON backups, imports, and repo exports remain supported.

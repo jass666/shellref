@@ -24,7 +24,7 @@ The Cloudflare project is configured in `wrangler.jsonc` with the project name `
 | `backend/worker.js` | Cloudflare Worker API for shared command records. |
 | `backend/schema.sql` | Cloudflare D1 schema for the command library. |
 | `backend/README.md` | Backend deployment and API notes. |
-| `js/filebuilder.js` | The File builder tab: template registry (.bat/.ps1/.sh/git push/cache cleaner/.gitignore/…), presets, .zip writer. |
+| `js/filebuilder.js` | The File builder tab: template registry (.bat/.ps1/.sh, PS1 → BAT launchers, PowerShell menu launchers, Git push, cache cleaner, .gitignore/…), presets, .zip writer. |
 | `js/analyzer.js` | The **Analyze file** tab: parses an uploaded script, cross-checks it against `DATA`, lets you remove/add steps and repackage it, and turns library gaps into LLM prompts + a backlog. |
 | `js/generators.js` | The Command Generator tab: the interactive recipe builder, the "browse & fill in the blanks" mode, the multi-command combine list, and the FAQ tab renderer. |
 | `js/app.js` | Core app: search/filter, card rendering, the sidebar (built from `sections.js`), theme toggle, and the hero terminal typer. |
