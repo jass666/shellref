@@ -2,6 +2,14 @@
 
 All notable changes to the Command Reference static site, tracked in order.
 
+## v7.8 - Editable commands and multi-line notes
+
+* **Multi-line Notes editor:** command notes now use a resizable textarea, preserving paragraph breaks, bullet points, and longer explanations when saved and displayed.
+* **All commands are editable:** built-in command cards now have an Edit action alongside saved commands. Built-in edits persist in browser storage and are included in library exports.
+* Increased the saved-note limit from 600 to 5,000 characters and kept line breaks visible in command cards.
+* Changed files: `js/mine.js`, `js/app.js`, `css/styles.css`.
+* Verified with `node --check` on the changed JavaScript files and `git diff --check`.
+
 ## v7.7 - Upload a PS1 and generate a double-click BAT launcher
 
 * **New File builder template: “PS1 → BAT launcher”.** Upload an existing `.ps1` or paste PowerShell commands, then download a matching `.bat` launcher designed for double-click use.

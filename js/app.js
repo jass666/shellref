@@ -120,6 +120,9 @@ function render(){
         const uid = `${secKey}-${tier}-${idx}`.replace(/\s+/g,'_');
         const shellTag = item.sh ? `<span class="shell-tag" style="--shell-color:${SHELL_COLORS[item.sh]}">${SHELL_LABELS[item.sh]}</span>` : '';
         const cmdStyle = item.sh ? ` style="color:${SHELL_COLORS[item.sh]}"` : '';
+        const editBtn = typeof mineEditBuiltin === 'function'
+          ? `<button type="button" class="copy-btn" onclick="${item.mine ? `mineEdit(${item.uid})` : `mineEditBuiltin(${item._id})`}">edit</button>`
+          : '';
         html += `<div class="card" style="--card-accent:${meta.color}">
           <div class="card-top">
             <div class="cmd"${cmdStyle}>${escapeHtml(item.cmd)}</div>
@@ -128,6 +131,7 @@ function render(){
           <p class="desc">${escapeHtml(item.desc)}</p>
           ${item.use ? `<p class="usecase"><b>Use case:</b> ${escapeHtml(item.use)}</p>` : ''}
           <div class="example">${/^https?:\/\//i.test(item.ex) ? `<a href="${escapeHtml(item.ex)}" target="_blank" rel="noopener noreferrer" class="example-link">${escapeHtml(item.ex)}</a>` : escapeHtml(item.ex)}<button class="copy-btn-inline" data-copy="${encodeURIComponent(item.ex)}" onclick="doCopy(this)">copy</button></div>
+          <div class="mine-card-foot"><span></span><span class="mine-card-actions">${editBtn}</span></div>
         </div>`;
       });
       html += `</div>`;

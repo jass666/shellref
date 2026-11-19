@@ -292,7 +292,7 @@
   }
   .copy-btn-inline:hover{ opacity:1; color:var(--text); border-color:var(--muted-2); }
   .copy-btn-inline.copied{ opacity:1; color:var(--unix); border-color:var(--unix); }
-  .card .desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; }
+  .card .desc{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; white-space:pre-wrap; overflow-wrap:anywhere; }
   .card .usecase{ font-size:12px; color:var(--muted-2); line-height:1.5; margin:0 0 8px; font-style:italic; }
   .card .usecase b{ font-style:normal; font-weight:600; color:var(--muted); }
 

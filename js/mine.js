@@ -18,6 +18,7 @@
 
 const MINE_LS_KEY = 'shellref-my-commands';
 const MINE_DEL_KEY = 'shellref-my-deleted';
+const MINE_OVERRIDE_KEY = 'shellref-command-overrides';
 const PRESET_LS_KEY = 'shellref-fb-presets';
 const PRESET_DEL_KEY = 'shellref-fb-presets-deleted';
 const MINE_SHELLS = ['', 'cmd', 'powershell', 'unix'];
@@ -40,13 +41,16 @@ function escapeAttr(s){
 const FILE_LIB = (typeof MY_LIBRARY_FILE !== 'undefined' && MY_LIBRARY_FILE) || {};
 const FILE_COMMANDS = Array.isArray(FILE_LIB.commands) ? FILE_LIB.commands : [];
 const FILE_PRESETS = Array.isArray(FILE_LIB.presets) ? FILE_LIB.presets : [];
+const FILE_OVERRIDES = FILE_LIB.overrides && typeof FILE_LIB.overrides === 'object' ? FILE_LIB.overrides : {};
 
 let mineLocal = lsGetJSON(MINE_LS_KEY, []);
 let mineDeleted = lsGetJSON(MINE_DEL_KEY, []);
+let mineOverrides = Object.assign({}, FILE_OVERRIDES, lsGetJSON(MINE_OVERRIDE_KEY, {}));
 let presetLocal = lsGetJSON(PRESET_LS_KEY, []);
 let presetDeleted = lsGetJSON(PRESET_DEL_KEY, []);
 if(!Array.isArray(mineLocal)) mineLocal = [];
 if(!Array.isArray(mineDeleted)) mineDeleted = [];
+if(!mineOverrides || typeof mineOverrides !== 'object' || Array.isArray(mineOverrides)) mineOverrides = {};
 if(!Array.isArray(presetLocal)) presetLocal = [];
 if(!Array.isArray(presetDeleted)) presetDeleted = [];
 let libStorageOk = true;
@@ -63,7 +67,7 @@ function mineNormalize(raw){
     uid,
     title: String(raw.title || '').trim().slice(0, 120),
     command,
-    desc: String(raw.desc || '').trim().slice(0, 600),
+    desc: String(raw.desc || '').trim().slice(0, 5000),
     shell,
     group: String(raw.group || '').trim().slice(0, 60),
     src: String(raw.src || '').trim().slice(0, 500),
@@ -110,6 +114,22 @@ function mineToDataItem(e){
 
 function mineSync(){
   for(let i = DATA.length - 1; i >= 0; i--){ if(DATA[i].s === 'mine') DATA.splice(i, 1); }
+  DATA.forEach(item=>{
+    if(!item._base) item._base = Object.assign({}, item);
+    const base = item._base;
+    const override = mineOverrides[String(item._id)];
+    if(override){
+      ['s','t','sh','cmd','desc','use','ex','kw','src'].forEach(k=>{
+        if(Object.prototype.hasOwnProperty.call(override, k)) item[k] = override[k];
+      });
+      item.edited = true;
+    } else if(item._base){
+      ['s','t','sh','cmd','desc','use','ex','kw','src'].forEach(k=>{
+        if(Object.prototype.hasOwnProperty.call(item._base, k)) item[k] = item._base[k];
+      });
+      delete item.edited;
+    }
+  });
   mineEffective().forEach(e=>DATA.push(mineToDataItem(e)));
 }
 
@@ -122,11 +142,29 @@ function mineRequestPersist(){
 function libSaveAll(){
   libStorageOk = lsSetJSON(MINE_LS_KEY, mineLocal)
     && lsSetJSON(MINE_DEL_KEY, mineDeleted)
+    && lsSetJSON(MINE_OVERRIDE_KEY, mineOverrides)
     && lsSetJSON(PRESET_LS_KEY, presetLocal)
     && lsSetJSON(PRESET_DEL_KEY, presetDeleted);
   mineRequestPersist();
   mineSync();
   if(typeof setStats === 'function') setStats();
+}
+
+function mineUpdateBuiltin(uid, raw){
+  const base = DATA.find(x=>Number(x._id) === Number(uid));
+  if(!base) return false;
+  const title = String(raw.title || '').trim();
+  const command = String(raw.command || '').replace(/\r\n?/g, '\n').replace(/\s+$/, '');
+  mineOverrides[String(uid)] = {
+    s: base.s, t: String(raw.group || base.t).trim() || base.t,
+    sh: MINE_SHELLS.includes(raw.shell) ? raw.shell : base.sh,
+    cmd: title || command.split('\n').find(l=>l.trim()) || base.cmd,
+    desc: String(raw.desc || '').trim().slice(0, 5000),
+    ex: command || base.ex,
+    use: base.use || '', kw: base.kw || '', src: String(raw.src || '').trim()
+  };
+  libSaveAll();
+  return true;
 }
 
 // Returns 'ok' | 'dup' | 'empty'.
@@ -204,6 +242,7 @@ function presetRemove(id){
 function libSnapshot(){
   return {
     commands: mineEffective().map(e=>({uid:e.uid, title:e.title, command:e.command, desc:e.desc, shell:e.shell, group:e.group, src:e.src, ts:e.ts})),
+    overrides: mineOverrides,
     presets: presetsEffective().map(p=>({id:p.id, tpl:p.tpl, name:p.name, values:p.values, ts:p.ts})),
   };
 }
@@ -240,6 +279,10 @@ function mineImportFile(input){
       mineMsg = {ok:false, text:'That file is not a shellref library (.json from "Export backup" or my-commands.js).'};
       renderMine();
       return;
+    }
+    if(data.overrides && typeof data.overrides === 'object' && !Array.isArray(data.overrides)){
+      mineOverrides = Object.assign({}, mineOverrides, data.overrides);
+      libSaveAll();
     }
     let added = 0, updated = 0, skipped = 0, pAdded = 0;
     (data.commands || []).forEach(raw=>{
@@ -306,12 +349,14 @@ function saveGenBrowseToMine(btn){
 // ---------- the "My saved commands" view ----------
 let mineDraft = {title:'', command:'', desc:'', shell:'', group:'', src:''};
 let mineEditUid = null;
+let mineEditBuiltinId = null;
 let mineFormOpen = false;
 let mineMsg = null; // {ok, text}
 
 function mineResetDraft(){
   mineDraft = {title:'', command:'', desc:'', shell:'', group:'', src:''};
   mineEditUid = null;
+  mineEditBuiltinId = null;
 }
 
 function mineOriginTag(item){
@@ -342,7 +387,7 @@ function mineCardHtml(item, meta){
       <span class="mine-origin ${o.cls}" title="${escapeAttr(o.tip)}">${o.label}</span>
       <span class="mine-card-actions">
         <button type="button" class="copy-btn" onclick="mineAddToMerge(${item.uid}, this)" title="Add to the Merge commands list">+ merge</button>
-        <button type="button" class="copy-btn" onclick="mineEdit(${item.uid})">edit</button>
+      <button type="button" class="copy-btn" onclick="mineEdit(${item.uid})">edit</button>
         <button type="button" class="copy-btn mine-del" onclick="mineDelete(${item.uid})">delete</button>
       </span>
     </div>
@@ -355,7 +400,7 @@ function mineFormHtml(){
   const shellOpts = [['', 'Any / not shell-specific'], ['cmd', 'Command Prompt'], ['powershell', 'PowerShell'], ['unix', 'WSL / Unix']]
     .map(([v, l])=>`<option value="${v}"${d.shell === v ? ' selected' : ''}>${l}</option>`).join('');
   return `<div class="mine-form" id="mineForm">
-    <div class="mine-form-title">${mineEditUid ? 'Edit saved command' : 'Save a command'}</div>
+    <div class="mine-form-title">${mineEditUid ? 'Edit saved command' : mineEditBuiltinId !== null ? 'Edit command' : 'Save a command'}</div>
     <div class="gen-fields">
       <label class="gen-field fb-wide">
         <span class="gen-field-label">Command (paste it exactly as you found it — multiple lines are fine; use &lt;Name&gt; for blanks to fill in later)</span>
@@ -379,8 +424,8 @@ function mineFormHtml(){
         <input type="text" class="gen-field-input" data-f="src" placeholder="https://…" value="${escapeAttr(d.src)}" oninput="onMineDraft(this)" autocomplete="off" spellcheck="false">
       </label>
       <label class="gen-field fb-wide">
-        <span class="gen-field-label">Notes (what it does, gotchas — searchable)</span>
-        <input type="text" class="gen-field-input" data-f="desc" value="${escapeAttr(d.desc)}" oninput="onMineDraft(this)" autocomplete="off">
+        <span class="gen-field-label">Notes (what it does, gotchas — searchable; paragraphs and bullet points are kept)</span>
+        <textarea class="gen-field-input fb-area" data-f="desc" rows="5" oninput="onMineDraft(this)" autocomplete="off" placeholder="Explain what it does, gotchas, examples, or bullet points…">${escapeHtml(d.desc)}</textarea>
       </label>
     </div>
     <div class="mine-form-btns">
@@ -458,7 +503,10 @@ function mineSubmit(){
   const d = mineDraft;
   if(!String(d.command).trim()){ mineMsg = {ok:false, text:'Paste a command first.'}; renderMine(); return; }
   if(d.src.trim() && !/^https?:\/\//i.test(d.src.trim())){ mineMsg = {ok:false, text:'The source link must start with http:// or https://.'}; renderMine(); return; }
-  if(mineEditUid){
+  if(mineEditBuiltinId !== null){
+    mineUpdateBuiltin(mineEditBuiltinId, d);
+    mineMsg = {ok:true, text:'Changes saved in this browser.'};
+  } else if(mineEditUid){
     mineUpdateEntry(mineEditUid, d);
     mineMsg = {ok:true, text:'Changes saved.'};
   } else {
@@ -476,8 +524,23 @@ function mineEdit(uid){
   if(!e) return;
   mineDraft = {title:e.title, command:e.command, desc:e.desc, shell:e.shell, group:e.group, src:e.src};
   mineEditUid = uid;
+  mineEditBuiltinId = null;
   mineFormOpen = true;
   mineMsg = null;
+  renderMine();
+  const f = document.getElementById('mineForm');
+  if(f) f.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function mineEditBuiltin(id){
+  const item = DATA.find(x=>Number(x._id) === Number(id));
+  if(!item || item.s === 'mine') return;
+  mineDraft = {title:item.cmd, command:item.ex, desc:item.desc || '', shell:item.sh || '', group:item.t || '', src:item.src || ''};
+  mineEditUid = null;
+  mineEditBuiltinId = Number(id);
+  mineFormOpen = true;
+  mineMsg = null;
+  if(typeof goToSection === 'function') goToSection('mine');
   renderMine();
   const f = document.getElementById('mineForm');
   if(f) f.scrollIntoView({behavior:'smooth', block:'center'});
