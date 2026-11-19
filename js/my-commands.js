@@ -1,21 +1,38 @@
-/* ==========================================================================
-   shellref — your permanent library (lives in the repo)
-   ==========================================================================
-   Saved commands and File-builder presets are stored in your browser the
-   moment you save them. Browser storage can be wiped (clearing site data,
-   a new device, a different browser), so this file is the permanent copy.
-
-   TO MAKE EVERYTHING PERMANENT:
-     1. Open the site -> "My saved commands" -> "Export for repo".
-     2. Replace this file (js/my-commands.js) with the downloaded one.
-     3. Run Push_Launcher.bat. Cloudflare Pages redeploys and every device
-        now loads your library from this file.
-
-   You can also edit this file by hand; each command needs at least `uid`
-   (a unique number, 100000 or higher) and `command`. See MANUAL.md section 3.
-   ========================================================================== */
+/* shellref — your permanent library (exported 2026-11-19).
+   Replace js/my-commands.js with this file, then run Push_Launcher.bat. */
 
 const MY_LIBRARY_FILE = {
-  "commands": [],
+  "commands": [
+    {
+      "uid": 1795063488229,
+      "title": "Kill outlook",
+      "command": "@echo off\ntitle Kill Outlook\n\necho ============================================\necho   Kill Outlook\necho ============================================\necho.\n\ntasklist /fi \"imagename eq OUTLOOK.EXE\" 2>nul | find /i \"OUTLOOK.EXE\" >nul\nif errorlevel 1 (\n    echo [INFO] Outlook is not running. Nothing to close.\n    goto DONE\n)\n\necho Closing Outlook...\ntaskkill /f /im OUTLOOK.EXE >nul 2>&1\nset \"RC=%errorlevel%\"\n\nrem Re-check to confirm it is really gone\ntimeout /t 1 /nobreak >nul\ntasklist /fi \"imagename eq OUTLOOK.EXE\" 2>nul | find /i \"OUTLOOK.EXE\" >nul\nif errorlevel 1 (\n    echo [SUCCESS] Outlook was closed.\n) else (\n    echo [FAILED] Outlook is still running. taskkill exit code: %RC%\n    echo          Try running this file as Administrator.\n)\n\n:DONE\necho.\nset /p \"dummy=Press Enter to exit...\"",
+      "desc": "",
+      "shell": "cmd",
+      "group": "",
+      "src": "",
+      "ts": 1795063488229
+    },
+    {
+      "uid": 1795063360373,
+      "title": "Get UUID",
+      "command": "@echo off\nsetlocal enabledelayedexpansion\ntitle System UUID\n\nrem ===== CONFIG =====\nrem Number used when you just press Enter at the number prompt (blank = no default)\nset \"DEFAULT_NUMBER=919511118716\"\nrem Country code added automatically when you type a 10-digit number\nset \"DEFAULT_CC=91\"\nrem AUTOSEND=1 presses Enter automatically after WhatsApp opens (fragile)\nset \"AUTOSEND=0\"\nset \"WAIT_SECONDS=10\"\nrem ==================\n\necho ============================================\necho   System UUID\necho ============================================\necho.\n\nrem ---- Fetch UUID ----\nwhere wmic >nul 2>&1\nif %errorlevel%==0 (\n    for /f \"skip=1 tokens=*\" %%A in ('wmic csproduct get uuid 2^>nul') do (\n        if not \"%%A\"==\"\" if not defined UUID set \"UUID=%%A\"\n    )\n)\n\nif not defined UUID (\n    echo wmic not available, falling back to PowerShell...\n    for /f \"usebackq delims=\" %%A in (`powershell -NoProfile -Command \"(Get-CimInstance Win32_ComputerSystemProduct).UUID\"`) do set \"UUID=%%A\"\n)\n\nfor /l %%i in (1,1,5) do if \"!UUID:~-1!\"==\" \" set \"UUID=!UUID:~0,-1!\"\n\nif not defined UUID (\n    echo [ERROR] Could not read the system UUID.\n    echo.\n    pause\n    exit /b 1\n)\n\nrem ---- Copy + save (always) ----\necho !UUID!| clip\necho !UUID!> \"%~dp0uuid.txt\"\n\nrem ---- Ask: WhatsApp or not ----\n:ASK\necho.\nchoice /c YN /n /m \"Send UUID to WhatsApp? [Y/N]: \"\nif errorlevel 2 goto SHOW\ngoto GETNUM\n\nrem ---- Ask for number ----\n:GETNUM\necho.\nset \"NUM=\"\nif defined DEFAULT_NUMBER (\n    set /p \"NUM=WhatsApp number with or without country code (Enter = %DEFAULT_NUMBER%, B = back): \"\n) else (\n    set /p \"NUM=WhatsApp number with or without country code (B = back): \"\n)\nif /i \"!NUM!\"==\"B\" goto ASK\nif not defined NUM set \"NUM=%DEFAULT_NUMBER%\"\nif not defined NUM goto BADNUM\n\nrem strip + space - ( )\nset \"NUM=!NUM:+=!\"\nset \"NUM=!NUM: =!\"\nset \"NUM=!NUM:-=!\"\nset \"NUM=!NUM:(=!\"\nset \"NUM=!NUM:)=!\"\n\nrem digits only?\necho !NUM!| findstr /r \"^[0-9][0-9]*$\" >nul\nif errorlevel 1 goto BADNUM\n\nrem drop a single leading 0 (e.g. 09511118716)\nif \"!NUM:~0,1!\"==\"0\" set \"NUM=!NUM:~1!\"\n\nrem length check: 10 to 15 digits\nif \"!NUM:~9,1!\"==\"\" goto BADNUM\nif not \"!NUM:~15,1!\"==\"\" goto BADNUM\n\nrem exactly 10 digits = local number, add country code\nif \"!NUM:~10,1!\"==\"\" set \"NUM=%DEFAULT_CC%!NUM!\"\ngoto SEND\n\n:BADNUM\necho.\necho [!] Invalid number. Use 10 digits, or full number with country code.\ngoto GETNUM\n\nrem ---- Send ----\n:SEND\necho.\necho UUID: !UUID!\necho PC  : %COMPUTERNAME%\necho.\necho Opening WhatsApp chat with +!NUM! ...\nstart \"\" \"https://wa.me/!NUM!?text=UUID%%3A%%20!UUID!%%0APC%%3A%%20%COMPUTERNAME%\"\n\nif \"%AUTOSEND%\"==\"1\" (\n    echo Waiting %WAIT_SECONDS%s then pressing Enter...\n    powershell -NoProfile -Command \"Start-Sleep -Seconds %WAIT_SECONDS%; Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')\"\n)\ngoto MENU\n\nrem ---- Show UUID (No path) ----\n:SHOW\necho.\necho UUID: !UUID!\necho PC  : %COMPUTERNAME%\necho.\necho Copied to clipboard and saved to %~dp0uuid.txt\n\nrem ---- Exit options ----\n:MENU\necho.\necho   [X] Exit\necho   [W] Send to WhatsApp\necho   [C] Copy UUID to clipboard again\necho.\nchoice /c XWC /n /m \"Choose: \"\nif errorlevel 3 (\n    echo !UUID!| clip\n    echo Copied.\n    goto MENU\n)\nif errorlevel 2 goto GETNUM\nexit /b 0",
+      "desc": "It fetches the UUID (using wmic, or PowerShell if wmic isn’t available). It copies the UUID to the clipboard and saves it to uuid.txt next to the script. It asks whether you want to send it to WhatsApp. Yes: you enter a number (Enter uses the default), and WhatsApp opens with the UUID and PC name prefilled. You still press send yourself, unless AUTOSEND=1. No: it just shows the UUID and PC name. Either way, it ends with an exit menu: Exit, Send to WhatsApp, or Copy again.",
+      "shell": "cmd",
+      "group": "",
+      "src": "",
+      "ts": 1795063360373
+    },
+    {
+      "uid": 1794893329848,
+      "title": "Unhide User",
+      "command": "@echo off\n:: Self-elevate to Administrator\nnet session >nul 2>&1\nif %errorlevel% neq 0 (\n    powershell -Command \"Start-Process -FilePath '%~f0' -Verb RunAs\"\n    exit /b\n)\n\npowershell -NoProfile -ExecutionPolicy Bypass -Command \"$c = Get-Content -LiteralPath '%~f0' -Raw; Invoke-Expression ($c.Substring($c.LastIndexOf('#PS-START') + 9))\"\necho.\npause\nexit /b\n\n#PS-START\n$hideKey = \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList\"\n$sysKey  = \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\"\n\n# Names hidden from the login screen (value = 0)\n$hiddenNames = @()\nif (Test-Path $hideKey) {\n    $props = Get-ItemProperty -Path $hideKey\n    $hiddenNames = @($props.PSObject.Properties |\n        Where-Object { $_.Name -notlike 'PS*' -and $_.Value -eq 0 } |\n        ForEach-Object { $_.Name })\n}\n\n$users = @(Get-LocalUser | Sort-Object Name)\nif ($users.Count -eq 0) { Write-Host \"No local users found.\"; return }\n\nWrite-Host \"\"\nWrite-Host \"Local accounts on this PC:\" -ForegroundColor Cyan\nWrite-Host (\"{0,-4} {1,-24} {2,-10} {3,-10} {4}\" -f \"#\", \"Name\", \"Enabled\", \"Hidden\", \"Note\")\nWrite-Host (\"-\" * 62)\n\n$i = 0\n$rows = foreach ($u in $users) {\n    $i++\n    $isHidden  = $hiddenNames -contains $u.Name\n    $isBuiltIn = $u.SID.Value -match '-(500|501|503|504)$'\n    $note = if ($isBuiltIn) { \"built-in\" } else { \"\" }\n    $color = if ($isHidden -or -not $u.Enabled) { \"Yellow\" } else { \"Gray\" }\n    Write-Host (\"{0,-4} {1,-24} {2,-10} {3,-10} {4}\" -f $i, $u.Name, $u.Enabled, $isHidden, $note) -ForegroundColor $color\n    [pscustomobject]@{ Index = $i; User = $u; Hidden = $isHidden; BuiltIn = $isBuiltIn }\n}\n\nWrite-Host \"\"\nWrite-Host \"Yellow = hidden and/or disabled.\"\nWrite-Host \"Enter numbers separated by commas or spaces (e.g. 2,4), A = all yellow non-built-in, Q = quit\"\n$choice = (Read-Host \"Select\").Trim()\nif ($choice -eq \"\" -or $choice -match '^[Qq]$') { Write-Host \"Cancelled.\"; return }\n\nif ($choice -match '^[Aa]$') {\n    $selected = $rows | Where-Object { ($_.Hidden -or -not $_.User.Enabled) -and -not $_.BuiltIn }\n} else {\n    $nums = $choice -split '[,\\s]+' | Where-Object { $_ -match '^\\d+$' } | ForEach-Object { [int]$_ }\n    $selected = $rows | Where-Object { $nums -contains $_.Index }\n}\n\nif (-not $selected) { Write-Host \"Nothing selected.\"; return }\n\n# Built-in accounts are disabled for security reasons, so confirm first\nforeach ($s in @($selected | Where-Object { $_.BuiltIn })) {\n    $ans = Read-Host \"'$($s.User.Name)' is a built-in account. Enable it anyway? (y/N)\"\n    if ($ans -notmatch '^[Yy]') { $selected = @($selected | Where-Object { $_.Index -ne $s.Index }) }\n}\n\nWrite-Host \"\"\nforeach ($s in $selected) {\n    $name = $s.User.Name\n    Write-Host \"== $name ==\" -ForegroundColor Cyan\n\n    if ($s.Hidden -or ((Test-Path $hideKey) -and (Get-ItemProperty $hideKey -Name $name -ErrorAction SilentlyContinue))) {\n        Remove-ItemProperty -Path $hideKey -Name $name -Force -ErrorAction SilentlyContinue\n        Write-Host \"  [OK] Removed from hidden-login list\"\n    } else {\n        Write-Host \"  [--] Was not in hidden list\"\n    }\n\n    if (-not $s.User.Enabled) {\n        Enable-LocalUser -Name $name\n        Write-Host \"  [OK] Account enabled\"\n    } else {\n        Write-Host \"  [--] Already enabled\"\n    }\n}\n\n# Reset policies that hide usernames on the sign-in screen\nforeach ($p in @(@{n=\"dontdisplaylastusername\"; v=0}, @{n=\"DontDisplayLockedUserId\"; v=1})) {\n    if (Get-ItemProperty -Path $sysKey -Name $p.n -ErrorAction SilentlyContinue) {\n        Set-ItemProperty -Path $sysKey -Name $p.n -Value $p.v\n        Write-Host \"[OK] Reset policy $($p.n)\"\n    }\n}\n\nWrite-Host \"\"\nWrite-Host \"Done. Sign out or restart to see the changes on the login screen.\" -ForegroundColor Green",
+      "desc": "Unhides the hidden users due to registry errors",
+      "shell": "cmd",
+      "group": "Saved from web",
+      "src": "",
+      "ts": 1794893329848
+    }
+  ],
   "presets": []
 };
