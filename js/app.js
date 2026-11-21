@@ -157,7 +157,11 @@ function slugifyLabel(s){
 }
 
 function downloadTextFile(filename, content){
-  const blob = new Blob([content], {type:'text/plain'});
+  // Browsers on Windows may append .txt to extensionless dotfiles such as
+  // .gitignore when the Blob is declared as text/plain. Keep the requested
+  // filename exact while preserving the normal text MIME type for everything else.
+  const mime = /^\.[^.]+$/.test(String(filename)) ? 'application/octet-stream' : 'text/plain';
+  const blob = new Blob([content], {type:mime});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
